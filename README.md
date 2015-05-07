@@ -1,8 +1,8 @@
-Plugin that integrates Elasticsearch client in your PlayFramework app.
+Plugin that integrates Elasticsearch clients into your PlayFramework app.
 
 ## Install
 
-Clone this repository and add it to the local repository
+Clone this plugin and add it to the local repository
 
 ~~~ sh
 $ git clone https://github.com/eduardofcbg/play-es.git
@@ -39,7 +39,7 @@ libraryDependencies ++= Seq(
 Add the following line to conf/play.plugins file. If it doesn't exist you can create it.
 
 ```
-com.github.eduardofcbg.plugin.es.ESPlugin
+9000:com.github.eduardofcbg.plugin.es.ESPlugin
 ```
 
 You should also configure the plugin in conf/application.conf
