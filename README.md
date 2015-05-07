@@ -1,6 +1,6 @@
 Plugin that integrates Elasticsearch client in your PlayFramework app.
 
-*Install*
+## Install
 
 Clone this repository and add it to the local repository
 
@@ -34,7 +34,7 @@ libraryDependencies ++= Seq(
 )
 ```
 
-*Enable Plugin*
+## Enable Plugin
 
 Add the following line to conf/play.plugins file. If it doesn't exist you can create it.
 
@@ -61,7 +61,7 @@ es.index="mydb"
 es.index.settings="{ analysis: { analyzer: { my_analyzer: { type: \"custom\", tokenizer: \"standard\" } } } }"
 ```
 
-*How to use*
+## How to use
 
 
 
