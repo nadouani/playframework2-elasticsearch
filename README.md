@@ -34,7 +34,7 @@ libraryDependencies ++= Seq(
 )
 ```
 
-## Enable Plugin
+## Enable the plugin
 
 Add the following line to `conf/play.plugins` file. If it doesn't exist you can create it.
 
