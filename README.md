@@ -36,13 +36,13 @@ libraryDependencies ++= Seq(
 
 ## Enable Plugin
 
-Add the following line to conf/play.plugins file. If it doesn't exist you can create it.
+Add the following line to `conf/play.plugins` file. If it doesn't exist you can create it.
 
 ```
 9000:com.github.eduardofcbg.plugin.es.ESPlugin
 ```
 
-You should also configure the plugin in conf/application.conf
+You should also configure the plugin in `conf/application.conf`
 
 ```
 ## ElasticSearch Configuration
