@@ -2,6 +2,8 @@ Plugin that integrates Elasticsearch clients into your PlayFramework app.
 
 ## Install
 
+This plugin requres Java 1.8 and PlayFramework 2.
+
 Clone this plugin and add it to the local repository
 
 ~~~ sh
