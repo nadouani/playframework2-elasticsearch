@@ -54,7 +54,7 @@ public class Finder<T extends Index> {
     }
 
     public T getAndParse(String id) throws NullPointerException, InterruptedException, ExecutionException {
-        return  utils.toBean(
+        return  utils.parse(
                 getClient()
                         .prepareGet(getIndexName(), getTypeName(), id)
                         .execute()
@@ -124,7 +124,7 @@ public class Finder<T extends Index> {
     }
 
     public List<T> searchAndParse(Consumer<SearchRequestBuilder> consumer) throws InterruptedException, ExecutionException {
-        return utils().toBeans(search(consumer));
+        return utils().parse(search(consumer));
     }
 
     public CountResponse count(Consumer<CountRequestBuilder> consumer) throws InterruptedException, ExecutionException {
@@ -151,7 +151,7 @@ public class Finder<T extends Index> {
 
     public class Utils {
 
-        public List<T> toBeans(SearchResponse hits) {
+        public List<T> parse(SearchResponse hits) {
             List<T> beans = new ArrayList<>();
             SearchHit[] newHits = hits.getHits().getHits();
             for(int i = 0; i < newHits.length; i++) {
@@ -164,14 +164,14 @@ public class Finder<T extends Index> {
             return beans;
         }
 
-        public T toBean(GetResponse result) {
+        public T parse(GetResponse result) {
             T bean = ESPlugin.getPlugin().getMapper().convertValue(result.getSource(), from);
             bean.setId(result.getId());
             bean.setVersion(result.getVersion());
             return bean;
         }
 
-        public T toBean(GetResult result) {
+        public T parse(GetResult result) {
             T bean = ESPlugin.getPlugin().getMapper().convertValue(result.getSource(), from);
             bean.setId(result.getId());
             bean.setVersion(result.getVersion());

@@ -61,7 +61,7 @@ es.index="mydb"
 
 ## How to use
 
-Make your models extend the `com.github.eduardofcbg.plugin.es.Index` class and annotate this class with the name of the [type](http://www.elastic.co/guide/en/elasticsearch/reference/current/glossary.html) that will be associated with the indexed objects of this class.
+Make your models extend the `com.github.eduardofcbg.plugin.es.Index` class and annotate it with the name of the [type](http://www.elastic.co/guide/en/elasticsearch/reference/current/glossary.html) that will be associated with the indexed objects of this class.
 On each model add a find helper. This is the object that you will use query your ES cluster.
 
 ```
@@ -72,9 +72,12 @@ import java.util.concurrent.ExecutionException;
 
 import org.elasticsearch.index.query.FilterBuilders;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.eduardofcbg.plugin.es.Finder;
 import com.github.eduardofcbg.plugin.es.Index;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 @Index.Entity(type="person")
 public class Person extends Index {
@@ -82,9 +85,10 @@ public class Person extends Index {
 	String name;
 	int age;
 	
-	private static final Finder<Person> find = new Finder<Person>(Person.class);
+	public static final Finder<Person> find = new Finder<Person>(Person.class);
 	
-	public Person(String name, int age) {
+	@JsonCreator
+	public Person(@JsonProperty("name") String name, @JsonProperty("age") int age) {
 		this.name = name;
 		this.age = age;
 	}
@@ -117,16 +121,28 @@ public class Person extends Index {
 }
 ```
 
-As you can see in the last method, you can easily construct any search query by passing a method that will change your SearchRequestBuilder object via side effects. This way you can use the ES java API directly in your models.
-If you want to search multiple types you can use the find helper of each class to get the type names.
+As you can see in the last method, you can easily construct any search query by passing a method that will change your `SearchRequestBuilder` object via side effects. This way you can use the ES java API directly in your models.
 
 Of course you can also get the client directly by calling:
 
 ```
-org.elasticsearch.client.Client client = ESPlugin.getPlugin().getClient();
+ESPlugin.getPlugin().getClient();
 ```
 
-This plugin uses it's own Jackson ObjectMapper for indexing and parsing responses. You can customize it by simply passing a different one `ESPlugin.getPlugin().setMapper(mymapper)`
+You also always get the type name of any model, just by accessing it's find helper object. 
+
+```
+Person.find.getTypeName()
+```
+
+There are some methods that will help you parse a `SearchResponse` and a `GetResponse`:
+
+```
+Person person = finder.utils().parse(response)
+List<Person> persons = finder.utils().parse(response)
+```
+
+This plugin uses it's own Jackson ObjectMapper for indexing and parsing responses. You can customize it by simply passing a different one: `ESPlugin.getPlugin().setMapper(mymapper)`.
 
 
 

@@ -242,7 +242,7 @@ public class PluginTest {
 
             List<DemoIndex> list = null;
             try {
-				list = DemoIndex.finder.utils().toBeans(DemoIndex.finder.search(null));
+				list = DemoIndex.finder.utils().parse(DemoIndex.finder.search(null));
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
