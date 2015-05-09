@@ -12,16 +12,16 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.search.SearchHit;
 
-import java.io.IOException;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class Finder<T extends Model> {
+public class Finder<T extends Index> {
 
     private Class<T> from;
     private Utils utils;
@@ -34,38 +34,39 @@ public class Finder<T extends Model> {
     public Utils utils() {
         return utils;
     }
-
-    public IndexResponse index(T toIndex) throws Exception {
+    
+    public IndexResponse index(T toIndex) throws JsonProcessingException, InterruptedException, ExecutionException {
         IndexResponse response = getClient()
                 .prepareIndex(getIndexName(), getTypeName())
                 .setSource(ESPlugin.getPlugin().getMapper().writeValueAsBytes(toIndex))
                 .execute()
-                .actionGet();
+                .get();
+        toIndex.setVersion(response.getVersion());
+        toIndex.setId(response.getId());
         return response;
     }
 
     //todo must throw exception when item is not found, is the get method async?
-    public DeleteResponse delete(String id) throws Exception {
-        DeleteResponse response = getClient().prepareDelete(getIndexName(), getTypeName(), id)
+    public DeleteResponse delete(String id) throws InterruptedException, ExecutionException {
+        return getClient().prepareDelete(getIndexName(), getTypeName(), id)
                 .execute()
-                .actionGet();
-        return response;
+                .get();
     }
 
-    public T getAndParse(String id) throws NullPointerException {
+    public T getAndParse(String id) throws NullPointerException, InterruptedException, ExecutionException {
         return  utils.toBean(
                 getClient()
                         .prepareGet(getIndexName(), getTypeName(), id)
                         .execute()
-                        .actionGet()
+                        .get()
         );
     }
 
-    public GetResponse get(String id) {
+    public GetResponse get(String id) throws InterruptedException, ExecutionException {
         return getClient()
                 .prepareGet(getIndexName(), getTypeName(), id)
                 .execute()
-                .actionGet();
+                .get();
     }
 
     public UpdateResponse update(Supplier<T> toUpdate, Consumer<T> consumer) throws Exception {
@@ -77,9 +78,9 @@ public class Finder<T extends Model> {
                 T willUpdate = toUpdate.get();
                 consumer.accept(willUpdate);
                 response = getClient().prepareUpdate(
-                        getIndexName(), getTypeName(), willUpdate.getId())
+                        getIndexName(), getTypeName(), willUpdate.getId().orElseThrow(IllegalArgumentException::new))
                         .setDoc(ESPlugin.getPlugin().getMapper().writeValueAsBytes(willUpdate))
-                        .setVersion(willUpdate.getVersion())
+                        .setVersion(willUpdate.getVersion().orElseThrow(IllegalArgumentException::new))
                         .get();
             } catch (Exception e) { done = false; }
         }
@@ -115,32 +116,33 @@ public class Finder<T extends Model> {
 
     }
 
-    public SearchResponse search(Consumer<SearchRequestBuilder> consumer) throws IOException {
+    public SearchResponse search(Consumer<SearchRequestBuilder> consumer) throws InterruptedException, ExecutionException {
         SearchRequestBuilder builder = getClient().prepareSearch(getIndexName()).setTypes(getTypeName());
         if (consumer != null) consumer.accept(builder);
-        SearchResponse response = builder.execute().actionGet();
-        if (response.isTimedOut() || response.getFailedShards() == response.getTotalShards()) throw new IOException();
+        SearchResponse response = builder.execute().get();
         return response;
     }
 
-    public List<T> searchAndParse(Consumer<SearchRequestBuilder> consumer) throws IOException {
+    public List<T> searchAndParse(Consumer<SearchRequestBuilder> consumer) throws InterruptedException, ExecutionException {
         return utils().toBeans(search(consumer));
     }
 
-    public CountResponse count(Consumer<CountRequestBuilder> consumer) throws Exception {
+    public CountResponse count(Consumer<CountRequestBuilder> consumer) throws InterruptedException, ExecutionException {
         CountRequestBuilder builder = getClient().prepareCount(getIndexName());
         if (consumer != null) consumer.accept(builder);
-        CountResponse response = builder.execute().actionGet();
-        if (response.getFailedShards() == response.getTotalShards()) throw new IOException();
-        return builder.execute().actionGet();
+        return builder.execute().get();
+    }
+    
+    public long countAndParse(Consumer<CountRequestBuilder> consumer) throws InterruptedException, ExecutionException {
+    	return count(consumer).getCount();
     }
 
     public String getIndexName() {
-        return from.getAnnotation(Entity.class).index();
+        return ESPlugin.getPlugin().indexName();
     }
 
     public String getTypeName() {
-        return from.getSimpleName().toLowerCase();
+        return from.getAnnotation(Index.Entity.class).type();
     }
 
     public static Client getClient() {
@@ -178,11 +180,5 @@ public class Finder<T extends Model> {
 
 
     }
-
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface Entity {
-        String index();
-    }
-
 
 }

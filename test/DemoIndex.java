@@ -1,13 +1,13 @@
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.eduardofcbg.plugin.es.Finder;
-import com.github.eduardofcbg.plugin.es.Model;
+import com.github.eduardofcbg.plugin.es.Index;
 
 import java.util.List;
 import java.util.Map;
 
-@Finder.Entity(index="testindex1")
-public class DemoIndex extends Model {
+@Index.Entity(type="testindex1")
+public class DemoIndex extends Index {
 
     private String name;
     private int age;

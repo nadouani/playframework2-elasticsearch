@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.util.*;
 
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -6,7 +5,6 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 
 import play.test.*;
-
 import static play.test.Helpers.*;
 import static org.fest.assertions.Assertions.*;
 
@@ -106,7 +104,12 @@ public class PluginTest {
             DemoIndex got = null;
             boolean ex = false;
             try {
-                got = DemoIndex.finder.getAndParse(addedId);
+                try {
+					got = DemoIndex.finder.getAndParse(addedId);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
             } catch (NullPointerException e) {
                 ex = true;
             }
@@ -115,7 +118,7 @@ public class PluginTest {
         });
     }
 
-    //todo delete must throw exception when does not exist
+    //todo
     @org.junit.Test
     public void deleteNonExistent() {
         running(esFakeApplication(), () -> {
@@ -127,6 +130,7 @@ public class PluginTest {
                 ex = true;
             }
         });
+        
     }
 
     @org.junit.Test
@@ -147,14 +151,29 @@ public class PluginTest {
             UpdateResponse update = null;
 
             try {
-                update = DemoIndex.finder.update(() -> DemoIndex.finder.getAndParse(id), original -> original.setName("Ben"));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+				update = DemoIndex.finder.update(() -> {
+					try {
+						return DemoIndex.finder.getAndParse(id);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					return null;
+				}, original -> original.setName("Ben"));
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 
             assertThat(update).isNotNull();
 
-            DemoIndex updated = DemoIndex.finder.getAndParse(id);
+            DemoIndex updated = null;
+			try {
+				updated = DemoIndex.finder.getAndParse(id);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             assertThat(updated.getName()).isEqualTo("Ben");
 
             assertThat(updated.getAge()).isEqualTo(demo.getAge());
@@ -189,7 +208,13 @@ public class PluginTest {
 
             assertThat(update).isNotNull();
 
-            DemoIndex updated = DemoIndex.finder.getAndParse(id);
+            DemoIndex updated = null;
+			try {
+				updated = DemoIndex.finder.getAndParse(id);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             assertThat(updated.getName()).isEqualTo("Ben");
 
             assertThat(updated.getAge()).isEqualTo(demo.getAge());
@@ -217,10 +242,11 @@ public class PluginTest {
 
             List<DemoIndex> list = null;
             try {
-                list = DemoIndex.finder.utils().toBeans(DemoIndex.finder.search(null));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+				list = DemoIndex.finder.utils().toBeans(DemoIndex.finder.search(null));
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             assertThat(list).isNotNull();
             assertThat(list.size()).isNotEqualTo(0);
             DemoIndex element = list.get(0);
