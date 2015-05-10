@@ -1,4 +1,4 @@
-Plugin that integrates Elasticsearch clients into your PlayFramework app.
+Plugin that integrates Elasticsearch into your PlayFramework app.
 
 ## Install
 
