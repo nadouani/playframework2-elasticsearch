@@ -226,16 +226,17 @@ public class Finder <T extends Index> {
             builder.execute(new ActionListener<UpdateResponse>() {
                 @Override
                 public void onResponse(UpdateResponse updateResponse) {
-                    if (version != null && version != updateResponse.getVersion())
-                            promise.failure(new IllegalAccessException("Tried to update outdated document."));
-                    else
-                        promise.success(updateResponse);
+                    promise.success(updateResponse);
                 }
                 @Override
                 public void onFailure(Throwable throwable) {
                     if (throwable.getCause().getClass().equals(org.elasticsearch.index.engine.DocumentMissingException.class))
                         promise.failure(new NullPointerException("No item found to be updated."));
-                    else promise.failure(throwable.getCause());
+                    else {
+                        if (throwable.getCause().getClass().equals(org.elasticsearch.index.engine.VersionConflictEngineException.class))
+                                promise.failure(new IllegalAccessException("Tried to update outdated document."));
+                        else promise.failure(throwable.getCause());
+                    }
                 }
             });
             return F.Promise.wrap(promise.wrapped());
