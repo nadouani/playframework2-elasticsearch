@@ -6,7 +6,7 @@ import com.github.eduardofcbg.plugin.es.Index;
 import java.util.List;
 import java.util.Map;
 
-@Index.Entity(type="testindex1")
+@Index.Type(name="demoindex")
 public class DemoIndex extends Index {
 
     private String name;

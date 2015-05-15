@@ -17,7 +17,7 @@ import static org.elasticsearch.node.NodeBuilder.*;
 
 public class ESPlugin extends Plugin {
 	
-    private final Application application;
+    private Application application;
     private ObjectMapper mapper;
 
     private Client client;
@@ -35,30 +35,30 @@ public class ESPlugin extends Plugin {
     	this.mapper = mapper;
     }
 
-    private final boolean isPluginDisabled() {
+    private boolean isPluginDisabled() {
         final boolean status =  application.configuration().getBoolean("es.enabled", false);
         return !status;
     }
 
-    public final static ESPlugin getPlugin() {
+    public static ESPlugin getPlugin() {
         return Play.application().plugin(ESPlugin.class);
     }
 
-    public final Client getClient() {
+    public Client getClient() {
         return client;
     }
     
-    public final ObjectMapper getMapper() {
+    public ObjectMapper getMapper() {
         return mapper;
     }
 
     @Override
-    public final boolean enabled() {
+    public boolean enabled() {
         return !isPluginDisabled();
     }
 
     @Override
-    public final void onStart() {
+    public void onStart() {
     	final boolean local = application.configuration().getBoolean("es.embed", false);
     	if (local)
     		createNode();
@@ -82,25 +82,25 @@ public class ESPlugin extends Plugin {
     	
         if (sniff) settings.put("client.transport.sniff", true);
         if (pingTimeout != null) settings.put("client.transport.ping_timeout", pingTimeout);
-        if (pingFrequency != null) settings.put("client.transport.nodes_sampler_interval", pingTimeout);
+        if (pingFrequency != null) settings.put("client.transport.nodes_sa    mpler_interval", pingTimeout);
         if (clusterName != null) settings.put("cluster.name", clusterName);
-        
-        TransportClient client = new TransportClient(settings.build());
-        for(int i = 0; i < hosts.length; i++)
-        	client.addTransportAddress(
-        			new InetSocketTransportAddress(hosts[i].split(":")[0], Integer.valueOf(hosts[i].split(":")[1])));
-        
-        this.client = client;
-	}
 
-	@Override
-    public final void onStop() {
-		if (node != null) node.close();
+    TransportClient client = new TransportClient(settings.build());
+    for(int i = 0; i < hosts.length; i++)
+            client.addTransportAddress(
+            new InetSocketTransportAddress(hosts[i].split(":")[0], Integer.valueOf(hosts[i].split(":")[1])));
+
+    this.client = client;
+}
+
+    @Override
+    public void onStop() {
+        if (node != null) node.close();
         client.close();
     }
 
-	public final String indexName() {
-		return application.configuration().getString("es.index", "play");
+	public String indexName() {
+		return application.configuration().getString("es.index", "play-es");
 	}
 	
 	

@@ -1,252 +1,260 @@
 import java.util.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.eduardofcbg.plugin.es.ManualRedo;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.index.query.FilterBuilders;
+import org.junit.Test;
 
 import play.test.*;
 import static play.test.Helpers.*;
 import static org.fest.assertions.Assertions.*;
 
-
 public class PluginTest {
+
+    public static long timeOut = 1000;
 
     public FakeApplication esFakeApplication() {
         Map<String, Object> config = new HashMap<>();
-        config.put("es.host", "127.0.0.1");
-        config.put("es.status", "enabled");
+        config.put("es.client", "127.0.0.1:9300");
+        config.put("es.enabled", true);
 
         List<String> additionalPlugin = new ArrayList<>();
         additionalPlugin.add("com.github.eduardofcbg.plugin.es.ESPlugin");
         return fakeApplication(config, additionalPlugin);
     }
 
-    @org.junit.Test
+    public DemoIndex demoFactory() {
+        return new DemoIndex("Ben", 20, Arrays.asList("element1", "element2"),
+                Collections.singletonMap("key1", new DemoIndex.Demo(66, Arrays.asList(12, 15))));
+    }
+
+    @Test
     public void indexName() {
-        DemoIndex demo = new DemoIndex("Ben", 20, Arrays.asList("element1", "element2"),
-                Collections.singletonMap("key1", new DemoIndex.Demo(66, Arrays.asList(12, 15))));
-        assertThat(DemoIndex.finder.getIndexName()).isEqualTo("testindex1");
-    }
-
-    @org.junit.Test
-    public void indexType() {
-        DemoIndex demo = new DemoIndex("Ben", 20, Arrays.asList("element1", "element2"),
-                Collections.singletonMap("key1", new DemoIndex.Demo(66, Arrays.asList(12, 15))));
-        assertThat(DemoIndex.finder.getTypeName()).isEqualTo("demoindex");
-    }
-
-    @org.junit.Test
-    public void index() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo = new DemoIndex("Ben", 20, Arrays.asList("element1", "element2"),
-                    Collections.singletonMap("key1", new DemoIndex.Demo(66, Arrays.asList(12, 15))));
-            IndexResponse response = null;
-            boolean ex = false;
-            try {
-                response = DemoIndex.finder.index(demo);
-            } catch (Exception e) {
-                ex = true;
-            }
+            assertThat(DemoIndex.finder.getIndexName()).isEqualTo("play-es");
+        });
+    }
+
+    @Test
+    public void indexType() {
+        running(esFakeApplication(), () -> {
+            assertThat(DemoIndex.finder.getTypeName()).isEqualTo("demoindex");
+        });
+    }
+
+    @Test
+    public void indexAndGet() {
+        running(esFakeApplication(), () -> {
+            DemoIndex demo = demoFactory();
+            
+            assertThat(demo.getVersion().isPresent()).isFalse();
+            assertThat(demo.getId().isPresent()).isFalse();
+            
+            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
             assertThat(response).isNotNull();
-            assertThat(ex).isFalse();
-            assertThat(response.getIndex()).isEqualTo("testindex1");
+            assertThat(response.getIndex()).isEqualTo("play-es");
             assertThat(response.getType()).isEqualTo("demoindex");
             assertThat(response.isCreated()).isTrue();
 
             String id = response.getId();
             assertThat(id).isNotNull();
-            DemoIndex got = null;
-            try {
-                got = DemoIndex.finder.getAndParse(id);
-            } catch (Exception e) {
-            }
+
+            DemoIndex got = DemoIndex.finder.get(id).get(timeOut);
             assertThat(got).isNotNull();
 
-            assertThat(got.getId()).isEqualTo(id);
+            assertThat(got.getId().get()).isEqualTo(id);
             assertThat(got.getTimestamp()).isEqualTo(demo.getTimestamp());
             assertThat(got.getName()).isEqualTo(demo.getName());
             assertThat(got.getAge()).isEqualTo(demo.getAge());
             assertThat(got.getThings()).isEqualTo(demo.getThings());
             assertThat(got.getMap()).isEqualTo(demo.getMap());
 
-            assertThat(got.getVersion()).isEqualTo(1);
-            assertThat(demo.getVersion()).isNull();
+            assertThat(got.getVersion().get()).isEqualTo(demo.getVersion().get()).isEqualTo(1);
         });
     }
 
-    @org.junit.Test
+    @Test
     public void delete() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo = new DemoIndex("Ben", 20, Arrays.asList("element1", "element2"),
-                    Collections.singletonMap("key1", new DemoIndex.Demo(66, Arrays.asList(12, 15))));
-            IndexResponse responseIndex = null;
-            boolean exIndex = false;
-            try {
-                responseIndex = DemoIndex.finder.index(demo);
-            } catch (Exception e) {
-                exIndex = true;
-            }
+            DemoIndex demo = demoFactory();
+            IndexResponse responseIndex = DemoIndex.finder.index(demo).get(timeOut);
+            
             assertThat(responseIndex).isNotNull();
-            assertThat(exIndex).isFalse();
-
             String addedId = responseIndex.getId();
 
-            DeleteResponse response = null;
-            boolean exc = false;
-            try {
-                response = DemoIndex.finder.delete(addedId);
-            } catch (Exception e) {
-                exc = true;
-            }
-            assertThat(exc).isFalse();
+            DeleteResponse response = DemoIndex.finder.delete(addedId).get(timeOut);
+
             assertThat(response).isNotNull();
             assertThat(response.getId()).isEqualTo(addedId);
-            DemoIndex got = null;
-            boolean ex = false;
-            try {
-                try {
-					got = DemoIndex.finder.getAndParse(addedId);
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-            } catch (NullPointerException e) {
-                ex = true;
-            }
-            assertThat(got).isNull();
-            assertThat(ex).isTrue();
         });
     }
 
-    //todo
-    @org.junit.Test
+    @Test(expected = NullPointerException.class)
+    public void getNonExisting() throws Exception{
+        running(esFakeApplication(), () -> {
+            DemoIndex.finder.get("1110").get(timeOut);        	
+        });
+    }
+    
+    @Test(expected = NullPointerException.class)
     public void deleteNonExistent() {
         running(esFakeApplication(), () -> {
-            DeleteResponse response = null;
-            boolean ex = false;
-            try {
-                response = DemoIndex.finder.delete("111");
-            } catch (Exception e) {
-                ex = true;
-            }
+        	DemoIndex.finder.delete("1110").get(timeOut);
         });
-        
     }
 
-    @org.junit.Test
+    @Test(expected = NullPointerException.class)
+    public void updateNonExistent() {
+        running(esFakeApplication(), () -> {
+            try {
+                DemoIndex.finder.update("1110").field("name", "Ben M.").execute().get(timeOut);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    @Test
     public void updateWithSupplier() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo = new DemoIndex("Ben M.", 20, Arrays.asList("element1", "element2"),
-                    Collections.singletonMap("key1", new DemoIndex.Demo(66, Arrays.asList(12, 15))));
-            IndexResponse response = null;
-            try {
-                response = DemoIndex.finder.index(demo);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            assertThat(response).isNotNull();
-            assertThat(response.getId()).isNotNull();
+            DemoIndex demo = demoFactory();
+            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
 
             String id = response.getId();
-            UpdateResponse update = null;
+
+            UpdateResponse updateResponse = null;
+            try {
+                updateResponse = DemoIndex.finder.update(() -> DemoIndex.finder.get(id), u -> u.setName("Ben M."), null).get(timeOut);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
 
             try {
-				update = DemoIndex.finder.update(() -> {
-					try {
-						return DemoIndex.finder.getAndParse(id);
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					return null;
-				}, original -> original.setName("Ben"));
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
 
-            assertThat(update).isNotNull();
+            assertThat(updateResponse).isNotNull();
 
-            DemoIndex updated = null;
-			try {
-				updated = DemoIndex.finder.getAndParse(id);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            assertThat(updated.getName()).isEqualTo("Ben");
+            DemoIndex updated = DemoIndex.finder.get(id).get(timeOut);
+
+            assertThat(updated.getName()).isEqualTo("Ben M.");
 
             assertThat(updated.getAge()).isEqualTo(demo.getAge());
             assertThat(updated.getThings()).isEqualTo(demo.getThings());
             assertThat(updated.getMap()).isEqualTo(demo.getMap());
-
         });
     }
 
-    @org.junit.Test
+    @Test
     public void updateWithId() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo = new DemoIndex("Ben M.", 20, Arrays.asList("element1", "element2"),
-                    Collections.singletonMap("key1", new DemoIndex.Demo(66, Arrays.asList(12, 15))));
-            IndexResponse response = null;
-            try {
-                response = DemoIndex.finder.index(demo);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            assertThat(response).isNotNull();
-            assertThat(response.getId()).isNotNull();
+            DemoIndex demo = demoFactory();
+            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
 
             String id = response.getId();
-            UpdateResponse update = null;
 
+            UpdateResponse updateResponse = null;
             try {
-                update = DemoIndex.finder.updateIndex(id).field("name", "Ben").update();
-            } catch (Exception e) {
+                updateResponse = DemoIndex.finder.update(id).field("name", "Ben M.").execute().get(timeOut);
+            } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
 
-            assertThat(update).isNotNull();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
 
-            DemoIndex updated = null;
-			try {
-				updated = DemoIndex.finder.getAndParse(id);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            assertThat(updated.getName()).isEqualTo("Ben");
+            assertThat(updateResponse).isNotNull();
+
+            DemoIndex updated = DemoIndex.finder.get(id).get(timeOut);
+
+            assertThat(updated.getName()).isEqualTo("Ben M.");
 
             assertThat(updated.getAge()).isEqualTo(demo.getAge());
             assertThat(updated.getThings()).isEqualTo(demo.getThings());
             assertThat(updated.getMap()).isEqualTo(demo.getMap());
-
         });
-
     }
 
-    //todo include a little more complicated search
-    @org.junit.Test
-    public void search() {
+    @Test
+    public void updateUsingVersion() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo = new DemoIndex("Ben", 20, Arrays.asList("element1", "element2"),
-                    Collections.singletonMap("key1", new DemoIndex.Demo(66, Arrays.asList(12, 15))));
-            IndexResponse response = null;
+            DemoIndex demo =  demoFactory();
+            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
+
+            String id = response.getId();
+
             try {
-                response = DemoIndex.finder.index(demo);
+                DemoIndex.finder.update(id).field("name", "Ben M.").execute();
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            assertThat(DemoIndex.finder.get(id).get(timeOut).getName()).isEqualTo("Ben M.");
+        });
+    }
+
+    @Test
+    public void updateUsingVersionWithConcurrency() {
+        running(esFakeApplication(), () -> {
+            DemoIndex demo =  demoFactory();
+            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
+
+            String id = response.getId();
+            System.out.println(id);
+
+            try {
+                DemoIndex.finder.update(id).field("age", 10).execute();
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            try {
+                DemoIndex.finder.update(id).field("age", 11).execute();
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            assertThat(DemoIndex.finder.get(id).get(timeOut).getVersion().get()).isEqualTo(3);
+
+            try {
+                DemoIndex.finder.update(id).field("age", 12).execute(new Long(1), (actual, redo) -> {
+                    redo.put("age", actual.getAge()+1);
+                });
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            assertThat(response).isNotNull();
-            assertThat(response.getId()).isNotNull();
 
-            List<DemoIndex> list = null;
+        });
+    }
+
+    @Test
+    public void search() {
+        running(esFakeApplication(), () -> {
+            DemoIndex demo =  demoFactory();
+            DemoIndex.finder.index(demo);
+
             try {
-				list = DemoIndex.finder.utils().parse(DemoIndex.finder.search(null));
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            List<DemoIndex> list = DemoIndex.finder.search(null).get(timeOut);
+
             assertThat(list).isNotNull();
             assertThat(list.size()).isNotEqualTo(0);
             DemoIndex element = list.get(0);
@@ -259,16 +267,55 @@ public class PluginTest {
         });
     }
 
-    //todo: would be better we cloud make this test a little better
-    @org.junit.Test
+    @Test
+    public void advancedSearch() {
+        running(esFakeApplication(), () -> {
+            DemoIndex demo1 =  demoFactory();
+            DemoIndex demo2 = demoFactory();
+            demo1.setAge(35);
+            demo2.setAge(35);
+            DemoIndex.finder.index(demo1);
+            DemoIndex.finder.index(demo2);
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            List<DemoIndex> list = DemoIndex.finder.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(30))).get(timeOut);
+
+            assertThat(list).isNotNull();
+            assertThat(list.size()).isGreaterThanOrEqualTo(2);
+
+            list.forEach(element -> {
+                assertThat(element.getName()).isEqualTo(demo1.getName());
+                assertThat(element.getAge()).isEqualTo(demo1.getAge());
+                assertThat(element.getThings()).isEqualTo(demo1.getThings());
+                assertThat(element.getMap()).isEqualTo(demo1.getMap());
+            });
+
+        });
+    }
+
+    @Test
+    public void searchEmptyResults() {
+        running(esFakeApplication(), () -> {
+            List<DemoIndex> list = DemoIndex.finder.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(50))).get(timeOut);
+
+            assertThat(list).isNotNull();
+            assertThat(list.size()).isEqualTo(0);
+        });
+    }
+
+    @Test
     public void count() {
         running(esFakeApplication(), () -> {
-            long count = 0;
+            DemoIndex.finder.index(demoFactory());
+
             try {
-                count = DemoIndex.finder.count(null).getCount();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            long count = DemoIndex.finder.count(null).get(timeOut);
             assertThat(count).isGreaterThan(0);
         });
     }

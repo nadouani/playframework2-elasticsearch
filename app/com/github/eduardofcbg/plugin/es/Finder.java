@@ -3,20 +3,29 @@ package com.github.eduardofcbg.plugin.es;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.DoubleFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.delete.DeleteRequestBuilder;
 import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateRequestBuilder;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.search.SearchHit;
 
@@ -26,61 +35,132 @@ import play.libs.F.RedeemablePromise;
 import scala.concurrent.Future;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-@SuppressWarnings("rawtypes") 
 public class Finder <T extends Index> {
 
     private Class<T> from;
+    private static final ObjectMapper mapper = ESPlugin.getPlugin().getMapper();
 
     public Finder(Class<T> from) {
         this.from = from;
     }
-            
-    public Promise<Result> async(ActionRequestBuilder builder) {
-    	return F.Promise.wrap(getFutute(builder));
-    }
-                
-    //ao fazer index o objectto toIndex tem de ter um id e uma versao inseridas
-    public Builder index(T toIndex) throws JsonProcessingException {
-        return new Builder(this, getClient()
-                .prepareIndex(getIndexName(), getTypeName())
-                .setSource(ESPlugin.getPlugin().getMapper().writeValueAsBytes(toIndex)));
+
+    public Promise<IndexResponse> index(T toIndex) {
+        IndexRequestBuilder builder = null;
+        try {
+            builder = getClient().prepareIndex(getIndexName(), getTypeName())
+                    .setSource(mapper.writeValueAsBytes(toIndex));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        RedeemablePromise<IndexResponse> promise = RedeemablePromise.empty();
+        builder.execute(new ActionListener<IndexResponse>() {
+            @Override
+            public void onResponse(IndexResponse indexResponse) {
+                toIndex.setId(indexResponse.getId());
+                toIndex.setVersion(indexResponse.getVersion());
+                promise.success(indexResponse);
+            }
+            @Override
+            public void onFailure(Throwable throwable) {
+                promise.failure(throwable);
+            }
+        });
+    	return F.Promise.wrap(promise.wrapped());
     }
     
-    public Builder get(String id) {
-        return new Builder(this, getClient()
-                .prepareGet(getIndexName(), getTypeName(), id));
+    public Promise<T> get(String id) {
+        GetRequestBuilder builder = getClient().prepareGet(getIndexName(), getTypeName(), id);
+
+        RedeemablePromise<T> promise = RedeemablePromise.empty();
+        builder.execute(new ActionListener<GetResponse>() {
+            @Override
+            public void onResponse(GetResponse getResponse) {
+                promise.success(parse(getResponse));
+            }
+            @Override
+            public void onFailure(Throwable throwable) {
+                promise.failure(throwable.getCause().getCause());
+            }
+        });
+        return F.Promise.wrap(promise.wrapped());
     }
 
-    public Builder delete(String id) {
-        return new Builder(this, getClient().prepareDelete(getIndexName(), getTypeName(), id));
+    public Promise<DeleteResponse> delete(String id) {
+        DeleteRequestBuilder builder = getClient().prepareDelete(getIndexName(), getTypeName(), id);
+
+        RedeemablePromise<DeleteResponse> promise = RedeemablePromise.empty();
+        builder.execute(new ActionListener<DeleteResponse>() {
+            @Override
+            public void onResponse(DeleteResponse deleteResponse) {
+            	if (!deleteResponse.isFound()) 
+            		promise.failure(new NullPointerException("No item found to be deleted."));
+            	else promise.success(deleteResponse);
+            }
+            @Override
+            public void onFailure(Throwable throwable) {
+                promise.failure(throwable);
+            }
+        });
+        return F.Promise.wrap(promise.wrapped());
     }
         
-    public Builder count(Consumer<CountRequestBuilder> consumer) {
+    public Promise<Long> count(Consumer<CountRequestBuilder> consumer) {
         CountRequestBuilder builder = getClient().prepareCount(getIndexName());
         if (consumer != null) consumer.accept(builder);
-        return new Builder(this, builder);
+
+        RedeemablePromise<Long> promise = RedeemablePromise.empty();
+        builder.execute(new ActionListener<CountResponse>() {
+            @Override
+            public void onResponse(CountResponse countResponse) {
+                promise.success(countResponse.getCount());
+            }
+            @Override
+            public void onFailure(Throwable throwable) {
+                promise.failure(throwable);
+            }
+        });
+        return F.Promise.wrap(promise.wrapped());
     }
     
-    public Builder search(Consumer<SearchRequestBuilder> consumer) {
+    public Promise<List<T>> search(Consumer<SearchRequestBuilder> consumer) {
         SearchRequestBuilder builder = getClient().prepareSearch(getIndexName()).setTypes(getTypeName());
         if (consumer != null) consumer.accept(builder);
-        return new Builder(this, builder);
+
+        RedeemablePromise<List<T>> promise = RedeemablePromise.empty();
+        builder.execute(new ActionListener<SearchResponse>() {
+            @Override
+            public void onResponse(SearchResponse searchResponse) {
+                promise.success(parse(searchResponse));
+            }
+            @Override
+            public void onFailure(Throwable throwable) {
+                promise.failure(throwable);
+            }
+        });
+        return F.Promise.wrap(promise.wrapped());
     }
-    
+
+    public UpdateBuilder update(String id) {
+    	return new UpdateBuilder(id);
+    }
+
+    public Promise<UpdateResponse> update(Supplier<Promise<T>> supplier, Consumer<T> update, Redo<T> callback) throws JsonProcessingException {
+        return new UpdateBuilder(null).supply(supplier, update, callback);
+    }
+
+    public Promise<UpdateResponse> update(Supplier<Promise<T>> supplier, Consumer<T> update) throws JsonProcessingException {
+        return update(supplier, update, null);
+    }
+
     public class UpdateBuilder {
 
-        HashMap<String, Object> fields;
-        T toUpdate;
+        Map<String, Object> fields;
+        T supplied;
         String id;
-        long version = 0;
 
-        public UpdateBuilder(String id, long version) {
-            this.fields = new HashMap<>();
-            this.id = id;
-            this.version = version;
-        }
-        
         public UpdateBuilder(String id) {
             this.fields = new HashMap<>();
             this.id = id;
@@ -90,31 +170,76 @@ public class Finder <T extends Index> {
             fields.put(field, object);
             return this;
         }
-        
-        public UpdateBuilder supply(Supplier<T> supplier) {
-        	this.toUpdate = supplier.get();
-        	return this;
+
+        private Promise<UpdateResponse> supply(Supplier<Promise<T>> supplier, Consumer<T> update, Redo<T> callback) throws JsonProcessingException {
+        	this.supplied = supplier.get().get(10000);
+        	this.id = supplied.getId().orElseThrow(IllegalArgumentException::new);
+        	update.accept(supplied);
+            Promise<UpdateResponse> result;
+            if (callback != null)
+                result = update(supplied.getVersion().orElseThrow(IllegalArgumentException::new));
+            else result = update(null);
+            result.onFailure(t -> {
+                if (t.getClass().equals(IllegalAccessException.class)) {
+                    if (callback != null)
+                        callback.redo(get(id).get(10000), supplied);
+                    supply(supplier, update, callback);
+                } else {
+                    throw t;
+                }
+            });
+            return result;
         }
 
-        public void updateAsync() throws JsonProcessingException {
-        	UpdateRequestBuilder builder;
-        	if (toUpdate == null) {
-                builder = getClient().prepareUpdate(getIndexName(), getTypeName(), id)
-                        .setDoc(ESPlugin.getPlugin().getMapper().writeValueAsBytes(fields))
-                        .setVersion(version);
-        	} else {
-                builder = getClient().prepareUpdate(getIndexName(), getTypeName(), toUpdate.getId()
-                			.orElseThrow(IllegalArgumentException::new))
-                        .setDoc(ESPlugin.getPlugin().getMapper().writeValueAsBytes(toUpdate))
-                        .setVersion(toUpdate.getVersion()
-                    		.orElseThrow(IllegalArgumentException::new));
-        	}
-            if (version != 0) builder.setVersion(version);
-            //todo add a way to log this, and to check if is really the version that has chnages. if the exception
-            //was originated becauyse of other cause, we must get out of this!! --> improve testing!
-            async(builder).onFailure((t) -> updateAsync());
+        public Promise<UpdateResponse> execute() throws JsonProcessingException {
+            return update(null);
         }
 
+        public Promise<UpdateResponse> execute(Long version, ManualRedo<T> callback) throws JsonProcessingException {
+            if (version == null) throw new IllegalArgumentException("You must specify a version for safe execute");
+            Promise<UpdateResponse> result = update(version);
+            result.onFailure(t -> {
+                if (t.getClass().equals(IllegalAccessException.class)) {
+                    callback.redo(get(id).get(10000), fields);
+                    execute(version, callback);
+                } else {
+                    throw t;
+                }
+            });
+            return result;
+        }
+
+        private Promise<UpdateResponse> update(Long version) throws JsonProcessingException {
+        	if (id == null) throw new IllegalArgumentException("An Id or a supplier must be specified");
+            if (version == null) play.Logger.warn("Updating without specifying a supplier or version. This may cause cause concurrency problems.");
+
+            Object updateObject;
+        	if (supplied != null) updateObject = supplied;
+        	else updateObject = fields;
+        	
+        	UpdateRequestBuilder builder = getClient().prepareUpdate(getIndexName(), getTypeName(), id)
+                        .setDoc(ESPlugin.getPlugin().getMapper().writeValueAsBytes(updateObject));
+            if (version != null)
+                builder.setVersion(version);
+
+            RedeemablePromise<UpdateResponse> promise = RedeemablePromise.empty();
+            builder.execute(new ActionListener<UpdateResponse>() {
+                @Override
+                public void onResponse(UpdateResponse updateResponse) {
+                    if (version != null && version != updateResponse.getVersion())
+                            promise.failure(new IllegalAccessException("Tried to update outdated document."));
+                    else
+                        promise.success(updateResponse);
+                }
+                @Override
+                public void onFailure(Throwable throwable) {
+                    if (throwable.getCause().getClass().equals(org.elasticsearch.index.engine.DocumentMissingException.class))
+                        promise.failure(new NullPointerException("No item found to be updated."));
+                    else promise.failure(throwable.getCause());
+                }
+            });
+            return F.Promise.wrap(promise.wrapped());
+        }
     }
     
     public String getIndexName() {
@@ -122,9 +247,13 @@ public class Finder <T extends Index> {
     }
 
     public String getTypeName() {
-        return from.getAnnotation(Index.Entity.class).type();
+        return from.getAnnotation(Index.Type.class).name();
     }
-    
+
+    public Map<String, Object> parse(Object obj) {
+        return getMapper().convertValue(obj, Map.class);
+    }
+
     public List<T> parse(SearchResponse hits) {
         List<T> beans = new ArrayList<>();
         SearchHit[] newHits = hits.getHits().getHits();
@@ -144,65 +273,10 @@ public class Finder <T extends Index> {
         bean.setVersion(result.getVersion());
         return bean;
     }
-        
-	@SuppressWarnings("unchecked")
-	private Future<Result> getFutute(ActionRequestBuilder builder) {
-    	RedeemablePromise<Result> promise = RedeemablePromise.empty();
-    	builder.execute(new ActionListener<ActionResponse>() {
-			@Override
-			public void onFailure(Throwable t) {
-				promise.failure(t);
-			}
-			@Override
-			public void onResponse(ActionResponse response) {
-				if (response instanceof CountResponse)
-					promise.success(new Result<T>(((CountResponse) response).getCount(), null, null, null, null));
-				if (response instanceof SearchResponse)
-					promise.success(new Result<T>(null, parse(((SearchResponse) response)), null, null, null));
-				if (response instanceof GetResponse)
-					promise.success(new Result<T>(null, null, parse(((GetResponse) response)), null, null));
-				if (response instanceof IndexResponse)
-					promise.success(new Result<T>(null, null, null, (IndexResponse) response, null));
-				if (response instanceof DeleteResponse)
-					promise.success(new Result<T>(null, null, null, null, (DeleteResponse) response));
-			}
-		});
-		return promise.wrapped();
-    }
-	
-	public class Builder {
 
-		private Finder finder;
-		ActionRequestBuilder request;
-		
-		protected Builder(Finder finder, ActionRequestBuilder request) {
-			this.finder = finder;
-			this.request = request;
-		}
-		
-		@SuppressWarnings("unchecked")
-		public Promise<Result<T>> async() {
-			return finder.async(request);
-		}
-		
-		public Result<T> get() throws Exception {
-			Promise<Result<T>> result = async();
-			//create a logging mecanism
-			result.onFailure(t -> {
-				throw new Exception(t);
-			});
-			//find a way to get the default wait time for ES or we may need to especify on application.conf
-			return result.get(5);
-		}
-		
-		public ActionRequestBuilder getRequest() {
-			return request;
-		}
-
-	}
-	
     public static Client getClient() {
         return ESPlugin.getPlugin().getClient();
     }
+    public static ObjectMapper getMapper() { return mapper; }
 
 }

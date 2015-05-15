@@ -1,6 +1,6 @@
 package com.github.eduardofcbg.plugin.es;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.IOException;
@@ -8,33 +8,35 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Optional;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public abstract class Index {
 
-    private String id;
-    private Long version;
+    private Optional<String> id;
+    private Optional<Long> version;
     private long timestamp;
     
     public Index() {
         super();
-        this.version = null;
+        this.id = Optional.empty();
+        this.version = Optional.empty();;
         this.timestamp = System.currentTimeMillis();
     }
 
+    @JsonIgnore
     public Optional<String> getId() {
-        return Optional.of(id);
+        return id;
     }
 
     public void setId(String id) {
-        this.id = id;
+        this.id = Optional.of(id);
     }
 
+    @JsonIgnore
     public Optional<Long> getVersion() {
-        return Optional.of(version);
+        return version;
     }
 
     public void setVersion(Long version) {
-        this.version = version;
+        this.version = Optional.of(version);
     }
 
     public long getTimestamp() {
@@ -50,8 +52,8 @@ public abstract class Index {
     }
     
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface Entity {
-        String type();
+    public @interface Type {
+        String name();
     }
 
 }
