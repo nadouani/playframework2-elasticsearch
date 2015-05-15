@@ -121,7 +121,12 @@ public class PluginTest {
     public void updateWithSupplier() {
         running(esFakeApplication(), () -> {
             DemoIndex demo = demoFactory();
-            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
+            IndexResponse response = null;
+            try {
+                response = DemoIndex.finder.index(demo).get(timeOut);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
 
             String id = response.getId();
 
@@ -210,6 +215,8 @@ public class PluginTest {
             String id = response.getId();
             System.out.println(id);
 
+            play.Logger.warn(id);
+
             try {
                 DemoIndex.finder.update(id).field("age", 10).execute();
             } catch (JsonProcessingException e) {
@@ -239,6 +246,8 @@ public class PluginTest {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
+            assertThat(DemoIndex.finder.get(id).get(timeOut).getAge()).isEqualTo(12);
 
         });
     }
