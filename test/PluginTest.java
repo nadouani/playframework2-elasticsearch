@@ -1,7 +1,5 @@
 import java.util.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.github.eduardofcbg.plugin.es.ManualRedo;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -109,14 +107,10 @@ public class PluginTest {
     @Test(expected = NullPointerException.class)
     public void updateNonExistent() {
         running(esFakeApplication(), () -> {
-            try {
-                DemoIndex.finder.update("12912", o -> {
-                    o.setAge(11);
-                    return o;
-                });
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+            DemoIndex.finder.update("12912", o -> {
+                o.setAge(11);
+                return o;
+            });
         });
     }
 
@@ -129,14 +123,10 @@ public class PluginTest {
             String id = response.getId();
 
             UpdateResponse updateResponse = null;
-            try {
-                updateResponse = DemoIndex.finder.update(id, u -> {
-                    u.setName("Ben M.");
-                    return u;
-                }).get(timeOut);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+            updateResponse = DemoIndex.finder.update(id, u -> {
+                u.setName("Ben M.");
+                return u;
+            }).get(timeOut);
 
             try {
                 Thread.sleep(1000);
@@ -165,27 +155,19 @@ public class PluginTest {
 
             play.Logger.warn(id);
 
-            try {
-                DemoIndex.finder.update(id, d -> {
-                    d.setAge(10);
-                    return d;
-                });
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+            DemoIndex.finder.update(id, d -> {
+                d.setAge(10);
+                return d;
+            });
 
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            try {
-                DemoIndex.finder.update(id, d -> {
-                    d.setAge(11);
-                    return d;
-                });
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+            DemoIndex.finder.update(id, d -> {
+                d.setAge(11);
+                return d;
+            });
 
             try {
                 Thread.sleep(1000);
@@ -193,14 +175,10 @@ public class PluginTest {
 
             assertThat(DemoIndex.finder.get(id).get(timeOut).getVersion().get()).isEqualTo(3);
 
-            try {
-                DemoIndex.finder.update(id, d -> {
-                    d.setAge(12);
-                    return d;
-                });
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+            DemoIndex.finder.update(id, d -> {
+                d.setAge(12);
+                return d;
+            });
 
             try {
                 Thread.sleep(1000);
@@ -214,14 +192,10 @@ public class PluginTest {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            try {
-                DemoIndex.finder.update(id, 1, d -> {
-                    d.setAge(13);
-                    return d;
-                });
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+            DemoIndex.finder.update(id, 1, d -> {
+                d.setAge(13);
+                return d;
+            });
 
             try {
                 Thread.sleep(1000);
@@ -241,14 +215,10 @@ public class PluginTest {
             String id = DemoIndex.finder.index(demo).get(timeOut).getId();
             play.Logger.warn("The id updated: " + id);
             for (int i = 0; i < toAdd; i++) {
-                try {
-                    DemoIndex.finder.update(demo, o -> {
-                        o.setAge(o.getAge() + 1);
-                        return o;
-                    });
-                } catch (JsonProcessingException e) {
-                    e.printStackTrace();
-                }
+                DemoIndex.finder.update(demo, o -> {
+                    o.setAge(o.getAge() + 1);
+                    return o;
+                });
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException e) {
@@ -257,7 +227,7 @@ public class PluginTest {
             }
 
             try {
-                Thread.sleep(toAdd*10 + 10000);
+                Thread.sleep(toAdd * 10 + 10000);
             } catch (InterruptedException e) {
             }
 

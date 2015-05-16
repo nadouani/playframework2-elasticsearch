@@ -171,31 +171,63 @@ public class Finder <T extends Index> {
         return F.Promise.wrap(promise.wrapped());
     }
 
-    public Promise<UpdateResponse> update(String id, long version, Function<T, T> change) throws JsonProcessingException {
+    /**
+     * Updated a document with the provided id. Before the update there will be made a get to get the current
+     * state of the document
+     * @param id The id of the document to update
+     * @param version The excepted version of the document to update
+     * @param change The function that can be passed that takes the original document and returns the one to be saved
+     * @return A promise (async) of the response given by ES server.
+     * @throws java.lang.NullPointerException When a document to update is not found
+     */
+    public Promise<UpdateResponse> update(String id, long version, Function<T, T> change) {
         T original = get(id).get(10000);
         original.setVersion(version);
         return update(original, original.getId().get(), change);
     }
 
-    //specifu that will be quertied frpm dn -- adicoanal perfomance hit
-    public Promise<UpdateResponse> update(String id, Function<T, T> change) throws JsonProcessingException {
+    /**
+     * Updated a document with the provided id. Before the update there will be made a get to get the current
+     * state of the document.
+     * @param id The id of the document to update
+     * @param change The function that can be passed that takes the original document and returns the one to be saved
+     * @return The function that can be passed that takes the original document and returns the one to be saved
+     * @throws java.lang.NullPointerException When a document to update is not found
+     */
+    public Promise<UpdateResponse> update(String id, Function<T, T> change) {
         T original = get(id).get(10000);
         return update(original, original.getId().get(), change);
     }
 
-    //specify that the orinal must be queried fomr the db
-    public Promise<UpdateResponse> update(T original, Function<T, T> change) throws JsonProcessingException {
+    /**
+     * Update a document given the java queried java object. No get request will be made because it's assumed
+     * that the passed object already contains an id, or because it was indexed before or was queried from the db.
+     * @param original The queried java object to find the associated ES document
+     * @param change The function that can be passed that takes the original document and returns the one to be saved
+     * @return The function that can be passed that takes the original document and returns the one to be saved
+     * @throws java.lang.NullPointerException When a document to update is not found
+     */
+    public Promise<UpdateResponse> update(T original, Function<T, T> change) {
         return update(original, original.getId().get(), change);
     }
 
-    public Promise<UpdateResponse> update(T original, String id, Function<T, T> change) throws JsonProcessingException {
+    /**
+     * Update a document with a specified id and a specified original state for the object
+     * @param original The original java object which state will be changed
+     * @param change The function that can be passed that takes the original document and returns the one to be saved
+     * @return The function that can be passed that takes the original document and returns the one to be saved
+     * @throws java.lang.NullPointerException When a document to update is not found
+     */
+    public Promise<UpdateResponse> update(T original, String id, Function<T, T> change) {
         T toUpdate = change.apply(original);
 
-        UpdateRequestBuilder builder = getClient().prepareUpdate(getIndexName(), getTypeName(), id)
-                .setDoc(ESPlugin.getPlugin().getMapper().writeValueAsBytes(toUpdate))
-                .setVersion(original.getVersion().get());
-
+        UpdateRequestBuilder builder;
         RedeemablePromise<UpdateResponse> promise = RedeemablePromise.empty();
+        try {
+            builder = getClient().prepareUpdate(getIndexName(), getTypeName(), id)
+                    .setDoc(ESPlugin.getPlugin().getMapper().writeValueAsBytes(toUpdate))
+                    .setVersion(original.getVersion().get());
+
         builder.execute(new ActionListener<UpdateResponse>() {
             @Override
             public void onResponse(UpdateResponse updateResponse) {
@@ -221,9 +253,11 @@ public class Finder <T extends Index> {
                 } else promise.failure(throwable.getCause());
             }
         });
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
         return F.Promise.wrap(promise.wrapped());
     }
-
 
     /**
      * @return The name of the index (associated with the elasticsearch cluster).
