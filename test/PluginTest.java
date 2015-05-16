@@ -110,7 +110,10 @@ public class PluginTest {
     public void updateNonExistent() {
         running(esFakeApplication(), () -> {
             try {
-                DemoIndex.finder.update("1110").field("name", "Ben M.").execute().get(timeOut);
+                DemoIndex.finder.update("12912", o -> {
+                    o.setAge(11);
+                    return o;
+                });
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
@@ -118,21 +121,19 @@ public class PluginTest {
     }
 
     @Test
-    public void updateWithSupplier() {
+    public void update() {
         running(esFakeApplication(), () -> {
             DemoIndex demo = demoFactory();
-            IndexResponse response = null;
-            try {
-                response = DemoIndex.finder.index(demo).get(timeOut);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
 
             String id = response.getId();
 
             UpdateResponse updateResponse = null;
             try {
-                updateResponse = DemoIndex.finder.update(() -> DemoIndex.finder.get(id), u -> u.setName("Ben M."), null).get(timeOut);
+                updateResponse = DemoIndex.finder.update(id, u -> {
+                    u.setName("Ben M.");
+                    return u;
+                }).get(timeOut);
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
@@ -154,60 +155,7 @@ public class PluginTest {
     }
 
     @Test
-    public void updateWithId() {
-        running(esFakeApplication(), () -> {
-            DemoIndex demo = demoFactory();
-            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
-
-            String id = response.getId();
-
-            UpdateResponse updateResponse = null;
-            try {
-                updateResponse = DemoIndex.finder.update(id).field("name", "Ben M.").execute().get(timeOut);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {}
-
-            assertThat(updateResponse).isNotNull();
-
-            DemoIndex updated = DemoIndex.finder.get(id).get(timeOut);
-
-            assertThat(updated.getName()).isEqualTo("Ben M.");
-
-            assertThat(updated.getAge()).isEqualTo(demo.getAge());
-            assertThat(updated.getThings()).isEqualTo(demo.getThings());
-            assertThat(updated.getMap()).isEqualTo(demo.getMap());
-        });
-    }
-
-    @Test
-    public void updateUsingVersion() {
-        running(esFakeApplication(), () -> {
-            DemoIndex demo =  demoFactory();
-            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
-
-            String id = response.getId();
-
-            try {
-                DemoIndex.finder.update(id).field("name", "Ben M.").execute();
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {}
-
-            assertThat(DemoIndex.finder.get(id).get(timeOut).getName()).isEqualTo("Ben M.");
-        });
-    }
-
-    @Test
-    public void updateUsingVersionWithConcurrency() {
+    public void updateWithConcurrency() {
         running(esFakeApplication(), () -> {
             DemoIndex demo =  demoFactory();
             IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
@@ -218,7 +166,10 @@ public class PluginTest {
             play.Logger.warn(id);
 
             try {
-                DemoIndex.finder.update(id).field("age", 10).execute();
+                DemoIndex.finder.update(id, d -> {
+                    d.setAge(10);
+                    return d;
+                });
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
@@ -228,7 +179,10 @@ public class PluginTest {
             } catch (InterruptedException e) {}
 
             try {
-                DemoIndex.finder.update(id).field("age", 11).execute();
+                DemoIndex.finder.update(id, d -> {
+                    d.setAge(11);
+                    return d;
+                });
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
@@ -240,15 +194,74 @@ public class PluginTest {
             assertThat(DemoIndex.finder.get(id).get(timeOut).getVersion().get()).isEqualTo(3);
 
             try {
-                DemoIndex.finder.update(id).field("age", 12).execute(new Long(1), (actual, redo) -> {
-                    redo.put("age", actual.getAge()+1);
+                DemoIndex.finder.update(id, d -> {
+                    d.setAge(12);
+                    return d;
                 });
-            } catch (Exception e) {
+            } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
 
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
             assertThat(DemoIndex.finder.get(id).get(timeOut).getAge()).isEqualTo(12);
 
+            DemoIndex original = DemoIndex.finder.get(id).get(timeOut);
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            try {
+                DemoIndex.finder.update(id, 1, d -> {
+                    d.setAge(13);
+                    return d;
+                });
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            assertThat(DemoIndex.finder.get(id).get(timeOut).getAge()).isEqualTo(13);
+
+        });
+    }
+
+    @Test
+    public void extremeTest() {
+        running(esFakeApplication(), () -> {
+            int toAdd = 1000;
+            DemoIndex demo = demoFactory();
+            demo.setAge(0);
+            String id = DemoIndex.finder.index(demo).get(timeOut).getId();
+            play.Logger.warn("The id updated: " + id);
+            for (int i = 0; i < toAdd; i++) {
+                try {
+                    DemoIndex.finder.update(demo, o -> {
+                        o.setAge(o.getAge() + 1);
+                        return o;
+                    });
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                Thread.sleep(toAdd*10 + 10000);
+            } catch (InterruptedException e) {
+            }
+
+            assertThat(DemoIndex.finder.get(id).get(timeOut).getAge()).isEqualTo(toAdd);
         });
     }
 
@@ -308,7 +321,7 @@ public class PluginTest {
     @Test
     public void searchEmptyResults() {
         running(esFakeApplication(), () -> {
-            List<DemoIndex> list = DemoIndex.finder.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(50))).get(timeOut);
+            List<DemoIndex> list = DemoIndex.finder.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(10000000))).get(timeOut);
 
             assertThat(list).isNotNull();
             assertThat(list.size()).isEqualTo(0);
