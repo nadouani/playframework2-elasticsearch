@@ -228,31 +228,32 @@ public class Finder <T extends Index> {
                     .setDoc(ESPlugin.getPlugin().getMapper().writeValueAsBytes(toUpdate))
                     .setVersion(original.getVersion().get());
 
-        builder.execute(new ActionListener<UpdateResponse>() {
-            @Override
-            public void onResponse(UpdateResponse updateResponse) {
-                promise.success(updateResponse);
-            }
-            @Override
-            public void onFailure(Throwable throwable) {
-                if (throwable.getCause().getClass().equals(org.elasticsearch.index.engine.VersionConflictEngineException.class)) {
-                    boolean done = false;
-                    while(!done) {
-                        done = true;
-                        try {
-                            T actual = get(id).get(10000);
+            builder.execute(new ActionListener<UpdateResponse>() {
+                @Override
+                public void onResponse(UpdateResponse updateResponse) {
+                    promise.success(updateResponse);
+                }
+                @Override
+                public void onFailure(Throwable throwable) {
+                    if (throwable.getCause().getCause().getClass().equals(org.elasticsearch.index.engine.VersionConflictEngineException.class)) {
+                        boolean done = false;
+                        while(!done) {
+                            done = true;
                             try {
-                                UpdateResponse r = getClient().prepareUpdate(getIndexName(), getTypeName(), id)
-                                        .setDoc(ESPlugin.getPlugin().getMapper().writeValueAsBytes(change.apply(actual)))
-                                        .setVersion(actual.getVersion().get()).get();
-                            } catch (JsonProcessingException e) {e.printStackTrace();}
-                        } catch(VersionConflictEngineException e) {
-                            play.Logger.debug("Solved concurrency problem on " + getTypeName() + ", id="  + id); done = false;
+                                T actual = get(id).get(10000);
+                                try {
+                                    UpdateResponse r = getClient().prepareUpdate(getIndexName(), getTypeName(), id)
+                                            .setDoc(ESPlugin.getPlugin().getMapper().writeValueAsBytes(change.apply(actual)))
+                                            .setVersion(actual.getVersion().get()).get();
+                                } catch (JsonProcessingException e) {e.printStackTrace();}
+                            } catch(VersionConflictEngineException e) {
+                                play.Logger.debug("Solved concurrency problem on " + getTypeName() + ", id="  + id);
+                                done = false;
+                            }
                         }
-                    }
-                } else promise.failure(throwable.getCause());
-            }
-        });
+                    } else promise.failure(throwable.getCause());
+                }
+            });
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }

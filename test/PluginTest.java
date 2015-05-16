@@ -209,7 +209,7 @@ public class PluginTest {
     @Test
     public void extremeTest() {
         running(esFakeApplication(), () -> {
-            int toAdd = 1000;
+            int toAdd = 100;
             DemoIndex demo = demoFactory();
             demo.setAge(0);
             String id = DemoIndex.finder.index(demo).get(timeOut).getId();
@@ -219,6 +219,7 @@ public class PluginTest {
                     o.setAge(o.getAge() + 1);
                     return o;
                 });
+
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException e) {
