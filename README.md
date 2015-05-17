@@ -7,8 +7,8 @@ This plugin requres Java 1.8 and PlayFramework 2.
 Clone this plugin and add it to the local repository
 
 ~~~ sh
-$ git clone https://github.com/eduardofcbg/play-es.git
-$ cd play-es
+$ git clone https://github.com/eduardofcbg/playframework2-elasticsearch.git
+$ cd playframework2-elasticsearch
 $ sbt publish-local
 ~~~
 
