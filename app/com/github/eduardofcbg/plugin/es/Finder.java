@@ -3,6 +3,7 @@ package com.github.eduardofcbg.plugin.es;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
@@ -16,19 +17,23 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequestBuilder;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.search.SearchHit;
 import play.libs.F;
 import play.libs.F.Promise;
 import play.libs.F.RedeemablePromise;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
+
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+
 
 /**
  * Helper class that queries your elasticsearch cluster. Should be instantiated statically in your models, meaning
@@ -40,6 +45,29 @@ public class Finder <T extends Index> {
     private Class<T> from;
     private static ObjectMapper mapper = ESPlugin.getPlugin().getMapper();
 
+    /**
+     * Creates a finder and adds a custom mapping for the type associated with it.
+     * @param from Types's class or the class that instantiates this helper.
+     * @param consumer A consumer to construct the mapping via side effects.
+     */
+    public Finder(Class<T> from, Consumer<XContentBuilder> consumer) {
+        this.from = from;
+        try {
+            XContentBuilder builder = jsonBuilder().startObject();
+            builder.startObject(getTypeName());
+            consumer.accept(builder);
+            builder.endObject();
+            builder.endObject();
+            setMapping(builder);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Creates a finder for querying ES cluster
+     * @param from Types's class or the class that instanciates this helper.
+     */
     public Finder(Class<T> from) {
         this.from = from;
     }
@@ -49,7 +77,6 @@ public class Finder <T extends Index> {
      * The model object indexed will then have associated with it a version and an id.
      * @param toIndex The model to be indexed
      * @return A promise (async) of the response given by the server
-     * @throws JsonProcessingException
      */
     public Promise<IndexResponse> index(T toIndex) {
         IndexRequestBuilder builder = null;
@@ -247,7 +274,8 @@ public class Finder <T extends Index> {
                                             .setVersion(actual.getVersion().get()).get();
                                 } catch (JsonProcessingException e) {e.printStackTrace();}
                             } catch(VersionConflictEngineException e) {
-                                play.Logger.debug("Solved concurrency problem on " + getTypeName() + ", id="  + id);
+                                if (ESPlugin.getPlugin().log())
+                                    play.Logger.debug("Solved concurrency problem on " + getTypeName() + ", id="  + id);
                                 done = false;
                             }
                         }
@@ -278,7 +306,7 @@ public class Finder <T extends Index> {
 
     /**
      * Additional method for parsing objects
-     * @param obj
+     * @param obj Object to parse
      * @return
      */
     public Map<String, Object> parse(Object obj) {
@@ -315,6 +343,14 @@ public class Finder <T extends Index> {
         return bean;
     }
 
+    private String parseToString(Object object) {
+        try {
+            return getMapper().writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        } return null;
+    }
+
     /**
      * Useful for more customized queries
      * @return The client from the official ES API.
@@ -327,5 +363,21 @@ public class Finder <T extends Index> {
      * @return The jackson's Object Mapper that is used to parse the responses and for indexing
      */
     public static ObjectMapper getMapper() { return mapper; }
+
+    private PutMappingResponse setMapping(XContentBuilder mapping) {
+        try {
+            return ESPlugin.getPlugin().getClient().admin().indices().preparePutMapping(getIndexName())
+                    .setType(getTypeName())
+                    .setSource(mapping)
+                    .execute()
+                    .get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 
 }

@@ -3,6 +3,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.eduardofcbg.plugin.es.Finder;
 import com.github.eduardofcbg.plugin.es.Index;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +15,13 @@ public class DemoIndex extends Index {
     private List<String> things;
     private Map<String, Demo> map;
 
-    public static Finder<DemoIndex> finder = new Finder<>(DemoIndex.class);
+    public static Finder<DemoIndex> finder = new Finder<>(DemoIndex.class, m -> {
+        try {
+            m.startObject("_timestamp")
+                    .field("enabled", true)
+            .endObject();
+        } catch (IOException e) {}
+    });
 
     @JsonCreator
     public DemoIndex(@JsonProperty("name") String name, @JsonProperty("age") int age, @JsonProperty("things") List<String> things, @JsonProperty("map") Map<String, Demo> map) {
@@ -88,8 +95,8 @@ public class DemoIndex extends Index {
             Demo original = (Demo) o;
             return ((Demo) o).getValue() ==value && ints.equals(((Demo) o).getInts());
         }
-    }
 
+    }
 
 }
 

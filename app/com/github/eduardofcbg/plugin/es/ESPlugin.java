@@ -64,6 +64,14 @@ public class ESPlugin extends Plugin {
     		createNode();
     	else
     		setTransportClient();
+        setMappings();
+    }
+
+    private void setMappings() {
+        String mappings = application.configuration().getString("es.mappings");
+        if (mappings != null)
+            getClient().admin().indices().preparePutMapping(indexName())
+                    .setSource(mappings).execute().actionGet();
     }
 
     private void createNode() {
@@ -82,13 +90,14 @@ public class ESPlugin extends Plugin {
     	
         if (sniff) settings.put("client.transport.sniff", true);
         if (pingTimeout != null) settings.put("client.transport.ping_timeout", pingTimeout);
-        if (pingFrequency != null) settings.put("client.transport.nodes_sa    mpler_interval", pingTimeout);
+        if (pingFrequency != null) settings.put("client.transport.nodes_sampler_interval", pingTimeout);
         if (clusterName != null) settings.put("cluster.name", clusterName);
 
     TransportClient client = new TransportClient(settings.build());
     for(int i = 0; i < hosts.length; i++)
             client.addTransportAddress(
-            new InetSocketTransportAddress(hosts[i].split(":")[0], Integer.valueOf(hosts[i].split(":")[1])));
+                new InetSocketTransportAddress(hosts[i].split(":")[0], Integer.valueOf(hosts[i].split(":")[1]))
+            );
 
     this.client = client;
 }
@@ -102,6 +111,9 @@ public class ESPlugin extends Plugin {
 	public String indexName() {
 		return application.configuration().getString("es.index", "play-es");
 	}
-	
-	
+
+
+    public boolean log() {
+        return application.configuration().getBoolean("es.log", false);
+    }
 }

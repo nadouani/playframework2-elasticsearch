@@ -2,11 +2,13 @@ package com.github.eduardofcbg.plugin.es;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 /**
  * A object that is associated with a document on the ES server. Models to be saved in the cluster should
@@ -78,7 +80,7 @@ public abstract class Index {
     public static <T extends Index> T fromJson(String data, Class<T> from) throws IOException {
         return ESPlugin.getPlugin().getMapper().readValue(data, from);
     }
-    
+
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Type {
         String name();

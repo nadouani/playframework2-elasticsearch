@@ -18,6 +18,7 @@ public class PluginTest {
         Map<String, Object> config = new HashMap<>();
         config.put("es.client", "127.0.0.1:9300");
         config.put("es.enabled", true);
+        config.put("es.log", true);
 
         List<String> additionalPlugin = new ArrayList<>();
         additionalPlugin.add("com.github.eduardofcbg.plugin.es.ESPlugin");
