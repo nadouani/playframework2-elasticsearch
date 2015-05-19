@@ -119,7 +119,7 @@ public class Finder <T extends Index> {
     public Promise<IndexResponse> indexChild(T toIndex, String parentId, Consumer<IndexRequestBuilder> consumer) {
         IndexRequestBuilder builder = null;
         try {
-            builder = getClient().prepareIndex(getIndexName(), getType())
+            builder = getClient().prepareIndex(getIndex(), getType())
                     .setSource(mapper.writeValueAsBytes(toIndex));
         } catch (JsonProcessingException e) { e.printStackTrace();}
         if (parentId != null) builder.setParent(parentId);
@@ -158,7 +158,7 @@ public class Finder <T extends Index> {
      * @throws java.lang.NullPointerException When the document is not found
      */
     public Promise<T> getChild(String id, String parentId) {
-        GetRequestBuilder builder = getClient().prepareGet(getIndexName(), getType(), id);
+        GetRequestBuilder builder = getClient().prepareGet(getIndex(), getType(), id);
         if (parentId != null) builder.setParent(parentId);
 
         RedeemablePromise<T> promise = RedeemablePromise.empty();
@@ -192,7 +192,7 @@ public class Finder <T extends Index> {
      * @throws java.lang.NullPointerException When a document to delete is not found
      */
     public Promise<DeleteResponse> deleteChild(String id, String parentId) {
-        DeleteRequestBuilder builder = getClient().prepareDelete(getIndexName(), getType(), id);
+        DeleteRequestBuilder builder = getClient().prepareDelete(getIndex(), getType(), id);
         if (parentId != null) builder.setParent(parentId);
 
         RedeemablePromise<DeleteResponse> promise = RedeemablePromise.empty();
@@ -218,7 +218,7 @@ public class Finder <T extends Index> {
      * the result will be the total number of indexed models of the finder's type
      */
     public Promise<Long> count(Consumer<CountRequestBuilder> consumer) {
-        CountRequestBuilder builder = getClient().prepareCount(getIndexName());
+        CountRequestBuilder builder = getClient().prepareCount(getIndex());
         if (consumer != null) consumer.accept(builder);
 
         RedeemablePromise<Long> promise = RedeemablePromise.empty();
@@ -243,7 +243,7 @@ public class Finder <T extends Index> {
      * of the model's type.
      */
     public Promise<List<T>> search(Consumer<SearchRequestBuilder> consumer) {
-        SearchRequestBuilder builder = getClient().prepareSearch(getIndexName()).setTypes(getType());
+        SearchRequestBuilder builder = getClient().prepareSearch(getIndex()).setTypes(getType());
         if (consumer != null) consumer.accept(builder);
 
         RedeemablePromise<List<T>> promise = RedeemablePromise.empty();
@@ -323,7 +323,7 @@ public class Finder <T extends Index> {
         UpdateRequestBuilder builder;
         RedeemablePromise<UpdateResponse> promise = RedeemablePromise.empty();
         try {
-            builder = getClient().prepareUpdate(getIndexName(), getType(), id)
+            builder = getClient().prepareUpdate(getIndex(), getType(), id)
                     .setDoc(mapper.writeValueAsBytes(toUpdate))
                     .setVersion(original.getVersion().get());
 
@@ -342,7 +342,7 @@ public class Finder <T extends Index> {
                             try {
                                 T actual = get(id).get(10000);
                                 try {
-                                    UpdateResponse r = getClient().prepareUpdate(getIndexName(), getType(), id)
+                                    UpdateResponse r = getClient().prepareUpdate(getIndex(), getType(), id)
                                             .setDoc(mapper.writeValueAsBytes(change.apply(actual)))
                                             .setVersion(actual.getVersion().get()).get();
                                 } catch (JsonProcessingException e) {e.printStackTrace();}
@@ -365,7 +365,7 @@ public class Finder <T extends Index> {
      * @return The name of the index (associated with the elasticsearch cluster).
      * This can be configured using your application.conf using the key "es.index" (see documentation on gihub repository).
      */
-    public static String getIndexName() {
+    public static String getIndex() {
         return ESPlugin.getPlugin().indexName();
     }
 
@@ -483,7 +483,7 @@ public class Finder <T extends Index> {
 
     private PutMappingResponse setMapping(XContentBuilder mapping) {
         try {
-            return getClient().admin().indices().preparePutMapping(getIndexName())
+            return getClient().admin().indices().preparePutMapping(getIndex())
                     .setType(getType())
                     .setSource(mapping)
                     .execute()

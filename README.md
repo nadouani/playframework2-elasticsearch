@@ -131,10 +131,10 @@ Finder.getClient();
 You also can get the index name and the type any model, just by accessing it's find helper object. 
 
 ```java
-Person.find.getTypeName();
+Person.find.getType();
 ```
 ```java
-Finder.getIndexName();
+Finder.getIndex();
 ```
 
 There are also some methods that will help you parse a `SearchResponse` and a `GetResponse`:

@@ -36,7 +36,7 @@ public class PluginTest {
     @Test
     public void indexName() {
         running(esFakeApplication(), () -> {
-            assertThat(DemoType.find.getIndexName()).isEqualTo("play-es");
+            assertThat(DemoType.find.getIndex()).isEqualTo("play-es");
         });
     }
 
