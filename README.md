@@ -108,7 +108,7 @@ public class Person extends Index {
 ```
 As you can see in the last method, you can easily construct any search query by passing a method that will change your `SearchRequestBuilder` object via side effects. This way you can use the ES java API directly in your models.
 
-All the finder's methods are asynchronous. They return `Promises` which can be easily turned into actual responses and even better, they can be turned into `Promises<Result>`, being the `Result` the type returned by play's controllers. This means you can easily construct asynchronous controllers like the one bellow.
+All the finder's methods are asynchronous. They return `Promises` which can be easily turned into actual responses and even better, they can be turned into `Promises<Result>`, being the `Result` the type returned by play's actions. This means you can easily construct asynchronous controllers like the one bellow.
 
 ```java
 public class PersonController extends Controller {
