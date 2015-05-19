@@ -1,6 +1,5 @@
 package com.github.eduardofcbg.plugin.es;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -17,7 +16,6 @@ public abstract class Index {
     private Optional<Long> version;
     private long timestamp;
 
-    @JsonCreator
     public Index() {
         super();
         this.id = Optional.empty();

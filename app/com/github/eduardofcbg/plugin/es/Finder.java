@@ -28,6 +28,7 @@ import play.libs.F.Promise;
 import play.libs.F.RedeemablePromise;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +59,7 @@ public class Finder <T extends Index> {
         this.from = from;
         try {
             setParentMapping();
+            setNestedFields();
 
             XContentBuilder builder = jsonBuilder().startObject();
             builder.startObject(getType());
@@ -78,6 +80,7 @@ public class Finder <T extends Index> {
         this.from = from;
         try {
             setParentMapping();
+            setNestedFields();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -497,15 +500,38 @@ public class Finder <T extends Index> {
         if (getParentType() != null) {
             XContentBuilder builder = jsonBuilder()
                     .startObject()
-                        .startObject(getType())
-                            .startObject("_parent")
-                                    .field("type", getParentType())
-                            .endObject()
-                        .endObject()
+                    .startObject(getType())
+                    .startObject("_parent")
+                    .field("type", getParentType())
+                    .endObject()
+                    .endObject()
                     .endObject();
             setMapping(builder);
             play.Logger.debug("Set " + getParentType() + " as parent of " + getType());
         }
+    }
+
+
+    private void setNestedFields() throws IOException {
+        for(Field field : from.getDeclaredFields()){
+            if (field.isAnnotationPresent(Type.NestedField.class))
+                setAsNested(field);
+        }
+    }
+
+    private void setAsNested(Field field) throws IOException {
+        XContentBuilder builder = jsonBuilder()
+                .startObject()
+                    .startObject(getType())
+                        .startObject("properties")
+                            .startObject(field.getName())
+                                .field("type", "nested")
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject();
+        setMapping(builder);
+        play.Logger.debug("ES - Set " + field.getName() + " from " + getType() + " as nested field");
     }
 
     public String getParentType() {

@@ -321,8 +321,10 @@ public class PluginTest {
     @Test
     public void indexParent() {
         running(esFakeApplication(), () -> {
-            ParentDemo parent = new ParentDemo("London", 2015);
+            ParentDemo parent = new ParentDemo("London", 2015, null);
             IndexResponse indexResponse = ParentDemo.find.index(parent).get(timeOut);
+
+            play.Logger.warn("thiefw: " + indexResponse.getId());
 
             assertThat(indexResponse).isNotNull();
             assertThat(indexResponse.getId()).isNotEmpty();
@@ -339,7 +341,7 @@ public class PluginTest {
     public void indexChild() {
         //use the childs's Finder helper to index and get it's child
         running(esFakeApplication(), () -> {
-            ParentDemo parent = new ParentDemo("London", 2015);
+            ParentDemo parent = new ParentDemo("London", 2015, null);
             IndexResponse parentIndex = ParentDemo.find.index(parent).get(timeOut);
 
             assertThat(parentIndex.getId()).isEqualTo(parent.getId().get());
@@ -361,7 +363,7 @@ public class PluginTest {
     @Test
     public void parent() {
         running(esFakeApplication(), () -> {
-            ParentDemo parent = new ParentDemo("London", 2015);
+            ParentDemo parent = new ParentDemo("London", 2015, null);
             IndexResponse indexResponse = ParentDemo.find.index(parent).get(timeOut);
 
             assertThat(indexResponse).isNotNull();
