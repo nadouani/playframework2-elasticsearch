@@ -93,8 +93,8 @@ public class ESPlugin extends Plugin {
         if (pingFrequency != null) settings.put("client.transport.nodes_sampler_interval", pingTimeout);
         if (clusterName != null) settings.put("cluster.name", clusterName);
 
-    TransportClient client = new TransportClient(settings.build());
-    for(int i = 0; i < hosts.length; i++)
+        TransportClient client = new TransportClient(settings.build());
+        for(int i = 0; i < hosts.length; i++)
             client.addTransportAddress(
                 new InetSocketTransportAddress(hosts[i].split(":")[0], Integer.valueOf(hosts[i].split(":")[1]))
             );
@@ -109,7 +109,7 @@ public class ESPlugin extends Plugin {
     }
 
 	public String indexName() {
-		return application.configuration().getString("es.index", "play-es");
+		return application.configuration().getString("es.index", "play-ess");
 	}
 
 

@@ -7,7 +7,7 @@ import com.github.eduardofcbg.plugin.es.Type;
 import java.util.List;
 import java.util.Map;
 
-@Type.Name(value="mydemotype")
+@Type.Name("mydemotypettt")
 public class DemoType extends Index {
 
     private String name;

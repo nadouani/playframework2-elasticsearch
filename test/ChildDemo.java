@@ -6,8 +6,8 @@ import com.github.eduardofcbg.plugin.es.Type;
 
 import java.util.List;
 
-@Type.Name(value="mychilddemo")
-@Type.Parent(value="myparentdemo")
+@Type.Name("mychilddemottt")
+@Type.Parent("myparentdemottt")
 public class ChildDemo extends Index {
 
     public List<Integer> numbers;

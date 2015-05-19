@@ -6,7 +6,7 @@ import com.github.eduardofcbg.plugin.es.Type;
 
 import java.util.Arrays;
 
-@Type.Name(value="myparentdemo")
+@Type.Name("myparentdemottt")
 public class ParentDemo extends Index {
 
     public String location;
