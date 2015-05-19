@@ -75,7 +75,7 @@ es.client="127.0.0.1:9300"
 Make your models extend the `com.github.eduardofcbg.plugin.es.Index` class and annotate it with the name of the [type](http://www.elastic.co/guide/en/elasticsearch/reference/current/glossary.html) that will be associated with the indexed objects of this class.
 On each model add a find helper. This is the object that you will use query your ES cluster.
 
-```
+```java
 package models;
 
 @Type.Name("person")
@@ -110,7 +110,7 @@ As you can see in the last method, you can easily construct any search query by 
 
 All the finder's methods are asynchronous. They return `Promises` which can be easily turned into actual responses and even better, they can be turned into `Promises<Result>`, being the `Result` the type returned by play's controllers. This means you can easily construct asynchronous controllers like the one bellow.
 
-```
+```java
 public class PersonController extends Controller {
 
     public static F.Promise<Result> getAdults() {ac
@@ -124,24 +124,24 @@ public class PersonController extends Controller {
 
 Of course you can also get the ES transport client by calling:
 
-```
+```java
 Finder.getClient();
 ```
 
 You also can get the index name and the type any model, just by accessing it's find helper object. 
 
+```java
+Person.find.getTypeName();
 ```
-Person.find.getTypeName()
-```
-```
-Finder.getIndexName()
+```java
+Finder.getIndexName();
 ```
 
 There are also some methods that will help you parse a `SearchResponse` and a `GetResponse`:
 
-```
-Person person = find.parse(response)
-List<Person> persons = find.parse(response)
+```java
+Person person = find.parse(response);
+List<Person> persons = find.parse(response);
 ```
 
 This plugin uses it's own Jackson ObjectMapper for indexing and parsing responses. You can customize it by simply passing a different one: `Finder.setMapper(mymapper)`.
@@ -150,7 +150,7 @@ This plugin uses it's own Jackson ObjectMapper for indexing and parsing response
 
 ElasticSearch uses the [Optimistic concurrency control](https://www.elastic.co/guide/en/elasticsearch/guide/master/optimistic-concurrency-control.html#optimistic-concurrency-control) method. This plugin allows one to update a document without having to deal with the case when there are such problems.
 
-```
+```java
 public static F.Promise<UpdateResponse> incrementAge(String id) {
         return find.update(id, original -> {
             original.age++;
@@ -164,7 +164,7 @@ An update can be done by specifying the document's Id and a Function that will b
 
 You are able to set mappings in your index using the `application.conf`, but mappings that affect specific types should be specified in your actual models just by passing them when you create the Find helper.
 
-```
+```java
 public static final Finder<Person> finder = new Finder<>(Person.class, m -> {
     try {
         m.startObject("_timestamp")
@@ -177,7 +177,7 @@ public static final Finder<Person> finder = new Finder<>(Person.class, m -> {
 
 Additionally, if you want to set a parent-child relationship or a nested type, it is as easy as setting an annotation:
 
-```
+```java
 package models;
 
 @Type.Name("person")
@@ -203,7 +203,7 @@ public class Person extends Index {
 }
 ```
 
-```
+```java
 package models;
 
 @Type.Name("pet")
