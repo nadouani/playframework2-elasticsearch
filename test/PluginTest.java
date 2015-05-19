@@ -1,14 +1,16 @@
-import java.util.*;
-
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.query.FilterBuilders;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.junit.Test;
+import play.test.FakeApplication;
 
-import play.test.*;
-import static play.test.Helpers.*;
-import static org.fest.assertions.Assertions.*;
+import java.util.*;
+
+import static org.fest.assertions.Assertions.assertThat;
+import static play.test.Helpers.fakeApplication;
+import static play.test.Helpers.running;
 
 public class PluginTest {
 
@@ -19,49 +21,49 @@ public class PluginTest {
         config.put("es.client", "127.0.0.1:9300");
         config.put("es.enabled", true);
         config.put("es.log", true);
+        //config.put("es.index", "play-testindex");
 
         List<String> additionalPlugin = new ArrayList<>();
         additionalPlugin.add("com.github.eduardofcbg.plugin.es.ESPlugin");
         return fakeApplication(config, additionalPlugin);
     }
 
-    public DemoIndex demoFactory() {
-        return new DemoIndex("Ben", 20, Arrays.asList("element1", "element2"),
-                Collections.singletonMap("key1", new DemoIndex.Demo(66, Arrays.asList(12, 15))));
+    public DemoType demoFactory() {
+        return new DemoType("Ben", 20, Arrays.asList("element1", "element2"),
+                Collections.singletonMap("key1", new DemoType.Demo(66, Arrays.asList(12, 15))));
     }
 
     @Test
     public void indexName() {
         running(esFakeApplication(), () -> {
-            assertThat(DemoIndex.finder.getIndexName()).isEqualTo("play-es");
+            assertThat(DemoType.find.getIndexName()).isEqualTo("play-es");
         });
     }
 
-    @Test
     public void indexType() {
         running(esFakeApplication(), () -> {
-            assertThat(DemoIndex.finder.getTypeName()).isEqualTo("demoindex");
+            assertThat(DemoType.find.getType()).isEqualTo("demotype");
         });
     }
 
     @Test
     public void indexAndGet() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo = demoFactory();
+            DemoType demo = demoFactory();
             
             assertThat(demo.getVersion().isPresent()).isFalse();
             assertThat(demo.getId().isPresent()).isFalse();
             
-            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
+            IndexResponse response = DemoType.find.index(demo).get(timeOut);
             assertThat(response).isNotNull();
-            assertThat(response.getIndex()).isEqualTo("play-es");
-            assertThat(response.getType()).isEqualTo("demoindex");
+            //assertThat(response.getIndex()).isEqualTo("play-es");
+            //assertThat(response.getType()).isEqualTo("demoindex");
             assertThat(response.isCreated()).isTrue();
 
             String id = response.getId();
             assertThat(id).isNotNull();
 
-            DemoIndex got = DemoIndex.finder.get(id).get(timeOut);
+            DemoType got = DemoType.find.get(id).get(timeOut);
             assertThat(got).isNotNull();
 
             assertThat(got.getId().get()).isEqualTo(id);
@@ -78,13 +80,13 @@ public class PluginTest {
     @Test
     public void delete() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo = demoFactory();
-            IndexResponse responseIndex = DemoIndex.finder.index(demo).get(timeOut);
+            DemoType demo = demoFactory();
+            IndexResponse responseIndex = DemoType.find.index(demo).get(timeOut);
             
             assertThat(responseIndex).isNotNull();
             String addedId = responseIndex.getId();
 
-            DeleteResponse response = DemoIndex.finder.delete(addedId).get(timeOut);
+            DeleteResponse response = DemoType.find.delete(addedId).get(timeOut);
 
             assertThat(response).isNotNull();
             assertThat(response.getId()).isEqualTo(addedId);
@@ -94,21 +96,21 @@ public class PluginTest {
     @Test(expected = NullPointerException.class)
     public void getNonExisting() throws Exception{
         running(esFakeApplication(), () -> {
-            DemoIndex.finder.get("1110").get(timeOut);        	
+            DemoType.find.get("1110").get(timeOut);
         });
     }
     
     @Test(expected = NullPointerException.class)
     public void deleteNonExistent() {
         running(esFakeApplication(), () -> {
-        	DemoIndex.finder.delete("1110").get(timeOut);
+        	DemoType.find.delete("1110").get(timeOut);
         });
     }
 
     @Test(expected = NullPointerException.class)
     public void updateNonExistent() {
         running(esFakeApplication(), () -> {
-            DemoIndex.finder.update("12912", o -> {
+            DemoType.find.update("12912", o -> {
                 o.setAge(11);
                 return o;
             });
@@ -118,13 +120,13 @@ public class PluginTest {
     @Test
     public void update() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo = demoFactory();
-            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
+            DemoType demo = demoFactory();
+            IndexResponse response = DemoType.find.index(demo).get(timeOut);
 
             String id = response.getId();
 
             UpdateResponse updateResponse = null;
-            updateResponse = DemoIndex.finder.update(id, u -> {
+            updateResponse = DemoType.find.update(id, u -> {
                 u.setName("Ben M.");
                 return u;
             }).get(timeOut);
@@ -135,7 +137,7 @@ public class PluginTest {
 
             assertThat(updateResponse).isNotNull();
 
-            DemoIndex updated = DemoIndex.finder.get(id).get(timeOut);
+            DemoType updated = DemoType.find.get(id).get(timeOut);
 
             assertThat(updated.getName()).isEqualTo("Ben M.");
 
@@ -148,15 +150,15 @@ public class PluginTest {
     @Test
     public void updateWithConcurrency() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo =  demoFactory();
-            IndexResponse response = DemoIndex.finder.index(demo).get(timeOut);
+            DemoType demo =  demoFactory();
+            IndexResponse response = DemoType.find.index(demo).get(timeOut);
 
             String id = response.getId();
             System.out.println(id);
 
             play.Logger.warn(id);
 
-            DemoIndex.finder.update(id, d -> {
+            DemoType.find.update(id, d -> {
                 d.setAge(10);
                 return d;
             });
@@ -165,7 +167,7 @@ public class PluginTest {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            DemoIndex.finder.update(id, d -> {
+            DemoType.find.update(id, d -> {
                 d.setAge(11);
                 return d;
             });
@@ -174,9 +176,9 @@ public class PluginTest {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            assertThat(DemoIndex.finder.get(id).get(timeOut).getVersion().get()).isEqualTo(3);
+            assertThat(DemoType.find.get(id).get(timeOut).getVersion().get()).isEqualTo(3);
 
-            DemoIndex.finder.update(id, d -> {
+            DemoType.find.update(id, d -> {
                 d.setAge(12);
                 return d;
             });
@@ -185,15 +187,15 @@ public class PluginTest {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            assertThat(DemoIndex.finder.get(id).get(timeOut).getAge()).isEqualTo(12);
+            assertThat(DemoType.find.get(id).get(timeOut).getAge()).isEqualTo(12);
 
-            DemoIndex original = DemoIndex.finder.get(id).get(timeOut);
+            DemoType original = DemoType.find.get(id).get(timeOut);
 
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            DemoIndex.finder.update(id, 1, d -> {
+            DemoType.find.update(id, 1, d -> {
                 d.setAge(13);
                 return d;
             });
@@ -202,7 +204,7 @@ public class PluginTest {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            assertThat(DemoIndex.finder.get(id).get(timeOut).getAge()).isEqualTo(13);
+            assertThat(DemoType.find.get(id).get(timeOut).getAge()).isEqualTo(13);
 
         });
     }
@@ -211,12 +213,12 @@ public class PluginTest {
     public void extremeTest() {
         running(esFakeApplication(), () -> {
             int toAdd = 100;
-            DemoIndex demo = demoFactory();
+            DemoType demo = demoFactory();
             demo.setAge(0);
-            String id = DemoIndex.finder.index(demo).get(timeOut).getId();
+            String id = DemoType.find.index(demo).get(timeOut).getId();
             play.Logger.warn("The id updated: " + id);
             for (int i = 0; i < toAdd; i++) {
-                DemoIndex.finder.update(demo, o -> {
+                DemoType.find.update(demo, o -> {
                     o.setAge(o.getAge() + 1);
                     return o;
                 });
@@ -233,25 +235,27 @@ public class PluginTest {
             } catch (InterruptedException e) {
             }
 
-            assertThat(DemoIndex.finder.get(id).get(timeOut).getAge()).isEqualTo(toAdd);
+            assertThat(DemoType.find.get(id).get(timeOut).getAge()).isEqualTo(toAdd);
         });
     }
 
     @Test
     public void search() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo =  demoFactory();
-            DemoIndex.finder.index(demo);
+            DemoType demo =  demoFactory();
+            DemoType.find.index(demo);
 
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            List<DemoIndex> list = DemoIndex.finder.search(null).get(timeOut);
+            List<DemoType> list = DemoType.find.search(s ->
+                    s.setQuery(QueryBuilders.matchQuery("_id", demo.getId().get())))
+            .get(timeOut);
 
             assertThat(list).isNotNull();
-            assertThat(list.size()).isNotEqualTo(0);
-            DemoIndex element = list.get(0);
+            assertThat(list.size()).isEqualTo(1);
+            DemoType element = list.get(0);
             assertThat(element).isNotNull();
 
             assertThat(element.getName()).isEqualTo(demo.getName());
@@ -264,18 +268,18 @@ public class PluginTest {
     @Test
     public void advancedSearch() {
         running(esFakeApplication(), () -> {
-            DemoIndex demo1 =  demoFactory();
-            DemoIndex demo2 = demoFactory();
+            DemoType demo1 =  demoFactory();
+            DemoType demo2 = demoFactory();
             demo1.setAge(35);
             demo2.setAge(35);
-            DemoIndex.finder.index(demo1);
-            DemoIndex.finder.index(demo2);
+            DemoType.find.index(demo1);
+            DemoType.find.index(demo2);
 
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            List<DemoIndex> list = DemoIndex.finder.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(30))).get(timeOut);
+            List<DemoType> list = DemoType.find.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(30).to(40))).get(timeOut);
 
             assertThat(list).isNotNull();
             assertThat(list.size()).isGreaterThanOrEqualTo(2);
@@ -293,7 +297,7 @@ public class PluginTest {
     @Test
     public void searchEmptyResults() {
         running(esFakeApplication(), () -> {
-            List<DemoIndex> list = DemoIndex.finder.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(10000000))).get(timeOut);
+            List<DemoType> list = DemoType.find.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(10000000))).get(timeOut);
 
             assertThat(list).isNotNull();
             assertThat(list.size()).isEqualTo(0);
@@ -303,14 +307,90 @@ public class PluginTest {
     @Test
     public void count() {
         running(esFakeApplication(), () -> {
-            DemoIndex.finder.index(demoFactory());
+            DemoType.find.index(demoFactory());
 
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {}
 
-            long count = DemoIndex.finder.count(null).get(timeOut);
+            long count = DemoType.find.count(null).get(timeOut);
             assertThat(count).isGreaterThan(0);
+        });
+    }
+
+    @Test
+    public void indexParent() {
+        running(esFakeApplication(), () -> {
+            ParentDemo parent = new ParentDemo("London", 2015);
+            IndexResponse indexResponse = ParentDemo.find.index(parent).get(timeOut);
+
+            assertThat(indexResponse).isNotNull();
+            assertThat(indexResponse.getId()).isNotEmpty();
+
+            ParentDemo got = ParentDemo.find.get(indexResponse.getId()).get(timeOut);
+
+            assertThat(got.location).isEqualTo(parent.location);
+            assertThat(got.number).isEqualTo(parent.number);
+            assertThat(got.getId().get()).isEqualTo(parent.getId().get()).isEqualTo(indexResponse.getId());
+        });
+    }
+
+    @Test
+    public void indexChild() {
+        //use the childs's Finder helper to index and get it's child
+        running(esFakeApplication(), () -> {
+            ParentDemo parent = new ParentDemo("London", 2015);
+            IndexResponse parentIndex = ParentDemo.find.index(parent).get(timeOut);
+
+            assertThat(parentIndex.getId()).isEqualTo(parent.getId().get());
+
+            ChildDemo child = new ChildDemo(Arrays.asList(20, 19, 12), "any_value");
+            IndexResponse indexResponse = ChildDemo.find.indexChild(child, parent.getId().get()).get(timeOut);
+
+            assertThat(indexResponse).isNotNull();
+            assertThat(indexResponse.getId()).isEqualTo(child.getId().get());
+
+            ChildDemo got = ChildDemo.find.getChild(indexResponse.getId(), parent.getId().get()).get(timeOut);
+
+            assertThat(got.numbers).isEqualTo(child.numbers);
+            assertThat(got.value).isEqualTo(child.value);
+            assertThat(got.getId().get()).isEqualTo(child.getId().get()).isEqualTo(indexResponse.getId());
+        });
+    }
+
+    @Test
+    public void parent() {
+        running(esFakeApplication(), () -> {
+            ParentDemo parent = new ParentDemo("London", 2015);
+            IndexResponse indexResponse = ParentDemo.find.index(parent).get(timeOut);
+
+            assertThat(indexResponse).isNotNull();
+            assertThat(indexResponse.getId()).isEqualTo(parent.getId().get());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            ChildDemo child = new ChildDemo(Arrays.asList(35, 78), "ola!");
+            IndexResponse childIndex = ChildDemo.find.indexChild(child, parent.getId().get()).get(timeOut);
+
+            assertThat(child.getId().get()).isEqualTo(childIndex.getId());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+
+            List<ChildDemo> results = ChildDemo.find.getAsChildrenOf(ParentDemo.class, parent.getId().get()).get(timeOut);
+
+            assertThat(results.size()).isEqualTo(1);
+            assertThat(results.size()).isEqualTo(1);
+
+            ChildDemo indexedChild = results.get(0);
+
+            assertThat(indexedChild.getTimestamp()).isEqualTo(child.getTimestamp());
+            assertThat(indexedChild.numbers).isEqualTo(child.numbers);
+            assertThat(indexedChild.value).isEqualTo(child.value);
+
         });
     }
 

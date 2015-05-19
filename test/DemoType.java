@@ -2,29 +2,23 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.eduardofcbg.plugin.es.Finder;
 import com.github.eduardofcbg.plugin.es.Index;
+import com.github.eduardofcbg.plugin.es.Type;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-@Index.Type(name="demoindex")
-public class DemoIndex extends Index {
+@Type.Name(value="demotypetesteeeoo")
+public class DemoType extends Index {
 
     private String name;
     private int age;
     private List<String> things;
     private Map<String, Demo> map;
 
-    public static Finder<DemoIndex> finder = new Finder<>(DemoIndex.class, m -> {
-        try {
-            m.startObject("_timestamp")
-                    .field("enabled", true)
-            .endObject();
-        } catch (IOException e) {}
-    });
+    public static Finder<DemoType> find = new Finder<>(DemoType.class);
 
     @JsonCreator
-    public DemoIndex(@JsonProperty("name") String name, @JsonProperty("age") int age, @JsonProperty("things") List<String> things, @JsonProperty("map") Map<String, Demo> map) {
+    public DemoType(@JsonProperty("name") String name, @JsonProperty("age") int age, @JsonProperty("things") List<String> things, @JsonProperty("map") Map<String, Demo> map) {
         this.name = name;
         this.age = age;
         this.things = things;

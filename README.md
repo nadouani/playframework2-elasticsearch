@@ -158,5 +158,5 @@ public static F.Promise<UpdateResponse> incrementAge(String id) {
 ```
 An update can be done by specifying the document's Id and a Function that will be applied to the Object associated with it. This means that the Finder is aware of what tranformation with are applying to the original object and can simply redo it if a problem related with concurrency occurs.
 
-For more details check the unit tests and the [javadoc][http://play-es-doc.s3-website-eu-west-1.amazonaws.com/com/github/eduardofcbg/plugin/es/package-summary.html]
+For more details check the unit tests and the [javadoc](http://play-es-doc.s3-website-eu-west-1.amazonaws.com/com/github/eduardofcbg/plugin/es/package-summary.html)
 
