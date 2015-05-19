@@ -113,7 +113,7 @@ All the finder's methods are asynchronous. They return `Promises` which can be e
 ```
 public class PersonController extends Controller {
 
-    public static F.Promise<Result> getAdults() {
+    public static F.Promise<Result> getAdults() {ac
         return Person.getAdults().map(persons -> {
             return ok(listOfPerson.render(persons));
         });
@@ -162,7 +162,7 @@ An update can be done by specifying the document's Id and a Function that will b
 
 ##Document relationships and mapping
 
-Your are able to set mappings in your index using the `application.conf`, but mappings that affect specific types should be specified in your actual models, just by passing them when you create the Find helper.
+You are able to set mappings in your index using the `application.conf`, but mappings that affect specific types should be specified in your actual models just by passing them when you create the Find helper.
 
 ```
 public static final Finder<Person> finder = new Finder<>(Person.class, m -> {
@@ -175,7 +175,7 @@ public static final Finder<Person> finder = new Finder<>(Person.class, m -> {
 });
 ```
 
-Additionally, if you want to set a parent-child relationship or a nested type, it is easy as setting an annotation:
+Additionally, if you want to set a parent-child relationship or a nested type, it is as easy as setting an annotation:
 
 ```
 package models;
