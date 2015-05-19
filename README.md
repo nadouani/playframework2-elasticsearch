@@ -7,8 +7,8 @@ This plugin requres Java 1.8 and PlayFramework 2.
 Clone this plugin and add it to the local repository
 
 ~~~ sh
-$ git clone https://github.com/eduardofcbg/play-es.git
-$ cd play-es
+$ git clone https://github.com/eduardofcbg/playframework2-elasticsearch.git
+$ cd playframework2-elasticsearch
 $ sbt publish-local
 ~~~
 
@@ -109,7 +109,7 @@ public class Person extends Index {
 ```
 As you can see in the last method, you can easily construct any search query by passing a method that will change your `SearchRequestBuilder` object via side effects. This way you can use the ES java API directly in your models.
 
-All the finder's methods asynchronous. They return Promises which can be easily turned into actual responses, and even better, they can be turned into Promises<Result>, being the Result the object returned by play's controllers. This means you can easily construct asynchrounous controllers like the one bellow.
+All the finder's methods are asynchronous. They return `Promises` which can be easily turned into actual responses and even better, they can be turned into `Promises<Result>`, being the `Result` the type returned by play's controllers. This means you can easily construct asynchrounous controllers like the one bellow.
 
 ```
 public class PersonController extends Controller {
@@ -123,7 +123,7 @@ public class PersonController extends Controller {
 }
 ```
 
-Of course you can also get the client directly by calling:
+Of course you can also get the ES transport client by calling:
 
 ```
 Finder.getClient();
@@ -135,7 +135,7 @@ You also always get the type name of any model, just by accessing it's find help
 Person.find.getTypeName()
 ```
 
-There are some methods that will help you parse a `SearchResponse` and a `GetResponse`:
+There are also some methods that will help you parse a `SearchResponse` and a `GetResponse`:
 
 ```
 Person person = find.parse(response)
@@ -154,9 +154,9 @@ public static F.Promise<UpdateResponse> incrementAge(String id) {
             original.age++;
             return original;
         });
-    }
+}
 ```
-An update can be done by specifying the document's Id and a Function that will be applied to the Object associated with it. This means that the Finder is aware of what tranformation with are applying to the original object and can simply redo it if a problem related with concurrency occurs.
+An update can be done by specifying the document's Id and a Function that will be applied to the Object associated with it. This means that the Finder is aware of what tranformation you are applying to the original object and can simply redo it if a problem related with concurrency occurs.
 
 For more details check the unit tests and the [javadoc](http://play-es-doc.s3-website-eu-west-1.amazonaws.com/com/github/eduardofcbg/plugin/es/package-summary.html)
 
