@@ -113,7 +113,7 @@ All the finder's methods are asynchronous. They return `Promises` which can be e
 ```java
 public class PersonController extends Controller {
 
-    public static F.Promise<Result> getAdults() {ac
+    public static F.Promise<Result> getAdults() {
         return Person.getAdults().map(persons -> {
             return ok(listOfPerson.render(persons));
         });
