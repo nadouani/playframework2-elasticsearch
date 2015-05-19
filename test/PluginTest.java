@@ -40,9 +40,10 @@ public class PluginTest {
         });
     }
 
+    @Test
     public void indexType() {
         running(esFakeApplication(), () -> {
-            assertThat(DemoType.find.getType()).isEqualTo("demotype");
+            assertThat(DemoType.find.getType()).isEqualTo("mydemotype");
         });
     }
 
