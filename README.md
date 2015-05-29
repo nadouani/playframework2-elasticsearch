@@ -50,7 +50,7 @@ You should also configure the plugin in `conf/application.conf`
 ## ElasticSearch Configuration
 
 ## Enable the plugin
-es.status="enabled"
+es.enabled=true
 es.embed=false
 
 ## Coma-separated list of clients
@@ -190,7 +190,6 @@ public class Person extends Index {
 	
 	public static final Finder<Person> find = new Finder<Person>(Person.class);
 	
-	@JsonCreator
 	public Person(@JsonProperty("name") String name, @JsonProperty("age") int age) {
 		this.name = name;
 		this.age = age;
@@ -215,7 +214,7 @@ public class Pet extends Index {
 	public static final Finder<Pet> find = new Finder<Pet>(Pet.class);
 	
 	@JsonCreator
-	public Person(@JsonProperty("name") String name) {
+	public Pet(@JsonProperty("name") String name) {
 		this.name = name;
 	}
 	
