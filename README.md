@@ -225,5 +225,5 @@ public class Pet extends Index {
 }
 ```
 
-For more details check the unit tests and the [javadoc](http://play-es-doc.s3-website-eu-west-1.amazonaws.com/com/github/eduardofcbg/plugin/es/package-summary.html)
+For more details check the unit tests.
 
