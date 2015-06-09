@@ -4,6 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
+import org.elasticsearch.action.bulk.BulkItemResponse;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
@@ -141,6 +144,33 @@ public class Finder <T extends Index> {
         return F.Promise.wrap(promise.wrapped());
     }
 
+    public Promise<BulkResponse> indexBulk(List<T> toIndex, Consumer<BulkItemResponse> consumer) {
+        BulkRequestBuilder bulkRequest = getClient().prepareBulk();
+        toIndex.forEach(data -> {
+            try {
+                bulkRequest.add(getClient().prepareIndex(getIndex(), getType()).setSource(mapper.writeValueAsBytes(data)));
+            } catch (JsonProcessingException e) { e.printStackTrace(); }
+        });
+
+        RedeemablePromise<BulkResponse> promise = RedeemablePromise.empty();
+        bulkRequest.execute().addListener(new ActionListener<BulkResponse>() {
+            @Override
+            public void onResponse(BulkResponse bulkItemResponses) {
+                if (bulkItemResponses.hasFailures()) {
+                    play.Logger.debug("ES - Bulk index failed");
+                    bulkItemResponses.forEach(r -> consumer.accept(r));
+                } else play.Logger.debug("ES - Bulk finished with errors");
+                promise.success(bulkItemResponses);
+
+            }
+            @Override
+            public void onFailure(Throwable throwable) {
+                promise.failure(throwable);
+            }
+        });
+        return F.Promise.wrap(promise.wrapped());
+    }
+
     /**
      * Gets a document from the elasticsearch cluster
      * @param id The unique id of the document that exists in the cluster
@@ -169,6 +199,7 @@ public class Finder <T extends Index> {
             }
             @Override
             public void onFailure(Throwable throwable) {
+                throwable.printStackTrace();
                 promise.failure(throwable.getCause().getCause());
             }
         });
@@ -476,10 +507,6 @@ public class Finder <T extends Index> {
      * @return The jackson's Object Mapper that is used to parse the responses and for indexing
      */
     public static ObjectMapper getMapper() { return mapper; }
-
-    public static void setMapper(ObjectMapper mapper) {
-        ESPlugin.getPlugin().setMapper(mapper);
-    }
 
     private PutMappingResponse setMapping(XContentBuilder mapping) {
         try {

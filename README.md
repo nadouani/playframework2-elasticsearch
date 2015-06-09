@@ -2,7 +2,7 @@ Plugin that integrates Elasticsearch into your PlayFramework app.
 
 ## Install
 
-This plugin requres Java 1.8 and PlayFramework 2.
+This plugin requres PlayFramework 2.4.
 
 Clone this plugin and add it to the local repository
 
@@ -86,8 +86,7 @@ public class Person extends Index {
 	
 	public static final Finder<Person> find = new Finder<Person>(Person.class);
 	
-	@JsonCreator
-	public Person(@JsonProperty("name") String name, @JsonProperty("age") int age) {
+	public Person(String name, int age) {
 		this.name = name;
 		this.age = age;
 	}
@@ -190,7 +189,7 @@ public class Person extends Index {
 	
 	public static final Finder<Person> find = new Finder<Person>(Person.class);
 	
-	public Person(@JsonProperty("name") String name, @JsonProperty("age") int age) {
+	public Person(String name, int age) {
 		this.name = name;
 		this.age = age;
 	}
@@ -213,8 +212,7 @@ public class Pet extends Index {
 	
 	public static final Finder<Pet> find = new Finder<Pet>(Pet.class);
 	
-	@JsonCreator
-	public Pet(@JsonProperty("name") String name) {
+	public Pet(String name) {
 		this.name = name;
 	}
 	

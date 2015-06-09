@@ -1,5 +1,3 @@
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.eduardofcbg.plugin.es.Finder;
 import com.github.eduardofcbg.plugin.es.Index;
 import com.github.eduardofcbg.plugin.es.Type;
@@ -15,8 +13,7 @@ public class ChildDemo extends Index {
 
     public static Finder<ChildDemo> find = new Finder<>(ChildDemo.class);
 
-    @JsonCreator
-    public ChildDemo(@JsonProperty("numbers") List<Integer> numbers, @JsonProperty("value") String value) {
+    public ChildDemo(List<Integer> numbers, String value) {
         this.numbers = numbers;
         this.value = value;
     }

@@ -1,18 +1,17 @@
 package com.github.eduardofcbg.plugin.es;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.node.Node;
-
 import play.Application;
 import play.Play;
 import play.Plugin;
-import static org.elasticsearch.node.NodeBuilder.*;
+import play.libs.Json;
+
+import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 
 
 public class ESPlugin extends Plugin {
@@ -26,13 +25,8 @@ public class ESPlugin extends Plugin {
     public ESPlugin(Application application) {
         this.application = application;
         if (enabled()) {
-        	setMapper(new ObjectMapper());
-            this.mapper.enable(SerializationFeature.INDENT_OUTPUT);
+            mapper = Json.mapper();
         }
-    }
-    
-    public void setMapper(ObjectMapper mapper) {
-    	this.mapper = mapper;
     }
 
     private boolean isPluginDisabled() {

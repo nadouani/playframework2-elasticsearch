@@ -1,3 +1,4 @@
+import com.github.eduardofcbg.plugin.es.Finder;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -8,7 +9,7 @@ import play.test.FakeApplication;
 
 import java.util.*;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static play.test.Helpers.fakeApplication;
 import static play.test.Helpers.running;
 
@@ -34,9 +35,14 @@ public class PluginTest {
     }
 
     @Test
+    public void odwd() {
+        assertThat("ola").isEqualToIgnoringCase("ole");
+    }
+
+    @Test
     public void indexName() {
         running(esFakeApplication(), () -> {
-            assertThat(DemoType.find.getIndex()).isEqualTo("play-es");
+            assertThat(Finder.getIndex()).isEqualTo("play-es");
         });
     }
 

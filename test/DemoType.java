@@ -1,5 +1,3 @@
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.eduardofcbg.plugin.es.Finder;
 import com.github.eduardofcbg.plugin.es.Index;
 import com.github.eduardofcbg.plugin.es.Type;
@@ -17,8 +15,7 @@ public class DemoType extends Index {
 
     public static Finder<DemoType> find = new Finder<>(DemoType.class);
 
-    @JsonCreator
-    public DemoType(@JsonProperty("name") String name, @JsonProperty("age") int age, @JsonProperty("things") List<String> things, @JsonProperty("map") Map<String, Demo> map) {
+    public DemoType(String name, int age, List<String> things, Map<String, Demo> map) {
         this.name = name;
         this.age = age;
         this.things = things;
@@ -62,8 +59,7 @@ public class DemoType extends Index {
         private int value;
         private List<Integer> ints;
 
-        @JsonCreator
-        public Demo(@JsonProperty("value") int value, @JsonProperty("ints") List<Integer> ints) {
+        public Demo(int value, List<Integer> ints) {
             this.value = value;
             this.ints = ints;
         }
