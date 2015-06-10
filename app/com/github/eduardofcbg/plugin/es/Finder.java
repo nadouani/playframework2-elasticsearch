@@ -2,6 +2,7 @@ package com.github.eduardofcbg.plugin.es;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Inject;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -50,8 +51,9 @@ import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
  */
 public class Finder <T extends Index> {
 
+    @Inject static ESComponent component;
+
     private Class<T> from;
-    private static ObjectMapper mapper = ESPlugin.getPlugin().getMapper();
 
     /**
      * Creates a finder and adds a custom mapping for the type associated with it.
@@ -123,7 +125,7 @@ public class Finder <T extends Index> {
         IndexRequestBuilder builder = null;
         try {
             builder = getClient().prepareIndex(getIndex(), getType())
-                    .setSource(mapper.writeValueAsBytes(toIndex));
+                    .setSource(component.getMapper().writeValueAsBytes(toIndex));
         } catch (JsonProcessingException e) { e.printStackTrace();}
         if (parentId != null) builder.setParent(parentId);
         if (consumer != null) consumer.accept(builder);
@@ -148,7 +150,7 @@ public class Finder <T extends Index> {
         BulkRequestBuilder bulkRequest = getClient().prepareBulk();
         toIndex.forEach(data -> {
             try {
-                bulkRequest.add(getClient().prepareIndex(getIndex(), getType()).setSource(mapper.writeValueAsBytes(data)));
+                bulkRequest.add(getClient().prepareIndex(getIndex(), getType()).setSource(component.getMapper().writeValueAsBytes(data)));
             } catch (JsonProcessingException e) { e.printStackTrace(); }
         });
 
@@ -355,7 +357,7 @@ public class Finder <T extends Index> {
         RedeemablePromise<UpdateResponse> promise = RedeemablePromise.empty();
         try {
             builder = getClient().prepareUpdate(getIndex(), getType(), id)
-                    .setDoc(mapper.writeValueAsBytes(toUpdate))
+                    .setDoc(component.getMapper().writeValueAsBytes(toUpdate))
                     .setVersion(original.getVersion().get());
 
             if (parentId != null) builder.setParent(parentId);
@@ -374,11 +376,11 @@ public class Finder <T extends Index> {
                                 T actual = get(id).get(10000);
                                 try {
                                     UpdateResponse r = getClient().prepareUpdate(getIndex(), getType(), id)
-                                            .setDoc(mapper.writeValueAsBytes(change.apply(actual)))
+                                            .setDoc(component.getMapper().writeValueAsBytes(change.apply(actual)))
                                             .setVersion(actual.getVersion().get()).get();
                                 } catch (JsonProcessingException e) {e.printStackTrace();}
                             } catch(VersionConflictEngineException e) {
-                                if (ESPlugin.getPlugin().log())
+                                if (component.log())
                                     play.Logger.debug("Solved concurrency problem on " + getType() + ", id="  + id);
                                 done = false;
                             }
@@ -397,7 +399,7 @@ public class Finder <T extends Index> {
      * This can be configured using your application.conf using the key "es.index" (see documentation on gihub repository).
      */
     public static String getIndex() {
-        return ESPlugin.getPlugin().indexName();
+        return component.indexName();
     }
 
     /**
@@ -435,7 +437,7 @@ public class Finder <T extends Index> {
         SearchHit[] newHits = hits.getHits().getHits();
         for(int i = 0; i < newHits.length; i++) {
             final SearchHit hit = newHits[i];
-            B bean = mapper.convertValue(hit.getSource(), from);
+            B bean = component.getMapper().convertValue(hit.getSource(), from);
             bean.setId(hit.getId());
             bean.setVersion(hit.getVersion());
             beans.add(bean);
@@ -449,7 +451,7 @@ public class Finder <T extends Index> {
      * @return
      */
     public T parse(GetResponse result) {
-        T bean = mapper.convertValue(result.getSource(), from);
+        T bean = component.getMapper().convertValue(result.getSource(), from);
         bean.setId(result.getId());
         bean.setVersion(result.getVersion());
         return bean;
@@ -495,8 +497,8 @@ public class Finder <T extends Index> {
      * Useful for more customized queries
      * @return The client from the official ES API.
      */
-    public static Client getClient() {
-        return ESPlugin.getPlugin().getClient();
+    public Client getClient() {
+        return component.getClient();
     }
 
     public static XContentBuilder JsonObject() throws IOException {
@@ -506,7 +508,7 @@ public class Finder <T extends Index> {
     /**
      * @return The jackson's Object Mapper that is used to parse the responses and for indexing
      */
-    public static ObjectMapper getMapper() { return mapper; }
+    public static ObjectMapper getMapper() { return component.getMapper(); }
 
     private PutMappingResponse setMapping(XContentBuilder mapping) {
         try {

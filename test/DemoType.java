@@ -22,6 +22,8 @@ public class DemoType extends Index {
         this.map = map;
     }
 
+    public DemoType() {}
+
     public String getName() {
         return name;
     }

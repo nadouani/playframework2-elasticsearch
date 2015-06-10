@@ -1,113 +1,102 @@
 package com.github.eduardofcbg.plugin.es;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Singleton;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.node.Node;
-import play.Application;
-import play.Play;
-import play.Plugin;
+import play.api.Configuration;
 import play.libs.Json;
+import play.libs.Scala;
 
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 
+/**
+ * Created by eduardo on 09-06-2015.
+ */
 
-public class ESPlugin extends Plugin {
-	
-    private Application application;
-    private ObjectMapper mapper;
+@Singleton
+public class ESPlugin implements ESComponent {
 
     private Client client;
     private Node node;
 
-    public ESPlugin(Application application) {
-        this.application = application;
-        if (enabled()) {
-            mapper = Json.mapper();
-        }
-    }
+    private static Configuration configuration;
 
-    private boolean isPluginDisabled() {
-        final boolean status =  application.configuration().getBoolean("es.enabled", false);
-        return !status;
-    }
+    public ESPlugin() {
+        final boolean local = configuration.getBoolean("es.embed").getOrElse(Scala.asScala(() -> false));
+        if (local)
+            createNode();
+        else
+            setTransportClient();
+        setMappings();
 
-    public static ESPlugin getPlugin() {
-        return Play.application().plugin(ESPlugin.class);
+        //lifecycle.addStopHook(() -> {
+        //    if (node != null) node.close();
+        //    client.close();
+        //    return F.Promise.pure(null);
+       // });
     }
 
     public Client getClient() {
         return client;
     }
-    
+
     public ObjectMapper getMapper() {
-        return mapper;
+        return Json.mapper();
     }
 
     @Override
-    public boolean enabled() {
-        return !isPluginDisabled();
+    public boolean log() {
+        return (boolean) configuration.getBoolean("es.log").get();
     }
 
-    @Override
-    public void onStart() {
-    	final boolean local = application.configuration().getBoolean("es.embed", false);
-    	if (local)
-    		createNode();
-    	else
-    		setTransportClient();
-        setMappings();
+    public String indexName() {
+        return configuration.getString("es.index", null).get();
     }
 
     private void setMappings() {
-        String mappings = application.configuration().getString("es.mappings");
+        String mappings = configuration.getString("es.mappings", null).get();
         if (mappings != null)
             getClient().admin().indices().preparePutMapping(indexName())
                     .setSource(mappings).execute().actionGet();
     }
 
     private void createNode() {
-    	node = nodeBuilder().local(true).node();
-    	client = node.client();
-	}
+        node = nodeBuilder().local(true).node();
+        client = node.client();
+    }
 
-	private void setTransportClient() {
+    private void setTransportClient() {
         ImmutableSettings.Builder settings = ImmutableSettings.settingsBuilder();
 
-    	final String[] hosts = application.configuration().getString("es.client").split(",");
-    	final boolean sniff = application.configuration().getBoolean("es.sniff", false);
-    	final String pingTimeout = application.configuration().getString("es.timeout");
-    	final String pingFrequency = application.configuration().getString("es.ping");
-    	final String clusterName = application.configuration().getString("es.cluster");
-    	
+        //TODO:
+        String host = configuration.getDeprecatedString("es.client", "es.client");
+        //List<String> hosts = Scala.asJava(list);
+        final boolean sniff = configuration.getBoolean("es.sniff").getOrElse(Scala.asScala(() -> false));
+        final String pingTimeout = configuration.getString("es.timeout", null).get();
+        final String pingFrequency = configuration.getString("es.ping", null).get();
+        final String clusterName = configuration.getString("es.cluster", null).get();
+
         if (sniff) settings.put("client.transport.sniff", true);
         if (pingTimeout != null) settings.put("client.transport.ping_timeout", pingTimeout);
         if (pingFrequency != null) settings.put("client.transport.nodes_sampler_interval", pingTimeout);
         if (clusterName != null) settings.put("cluster.name", clusterName);
 
         TransportClient client = new TransportClient(settings.build());
-        for(int i = 0; i < hosts.length; i++)
+        //for(int i = 0; i < hosts.size(); i++)
             client.addTransportAddress(
-                new InetSocketTransportAddress(hosts[i].split(":")[0], Integer.valueOf(hosts[i].split(":")[1]))
+                    //new InetSocketTransportAddress(hosts.get(i).split(":")[0], Integer.valueOf(hosts.get(i).split(":")[1]))
+                    new InetSocketTransportAddress(host.split(":")[0], Integer.valueOf(host.split(":")[1]))
             );
 
-    this.client = client;
-}
-
-    @Override
-    public void onStop() {
-        if (node != null) node.close();
-        client.close();
+        this.client = client;
     }
 
-	public String indexName() {
-		return application.configuration().getString("es.index", "play-ess");
-	}
-
-
-    public boolean log() {
-        return application.configuration().getBoolean("es.log", false);
+    public static void setConfiguration(Configuration conf) {
+        configuration = conf;
     }
+
 }

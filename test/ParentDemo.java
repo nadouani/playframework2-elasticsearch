@@ -20,6 +20,8 @@ public class ParentDemo extends Index {
         this.nested = new NestedDemo("ola", 55, Arrays.asList("ola!", "ole!", "..."));
     }
 
+    public ParentDemo() {}
+
     public void setNested(NestedDemo nested) {
         this.nested = nested;
     }

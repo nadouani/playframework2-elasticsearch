@@ -2,6 +2,7 @@ package com.github.eduardofcbg.plugin.es;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.inject.Inject;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -11,6 +12,8 @@ import java.util.Optional;
  * extend this class
  */
 public abstract class Index {
+
+    @Inject static ESComponent component;
 
     private Optional<String> id;
     private Optional<Long> version;
@@ -62,7 +65,7 @@ public abstract class Index {
      * @return A json object that is compatible with Play's controllers.
      */
     public JsonNode toJson() {
-        return ESPlugin.getPlugin().getMapper().convertValue(this, JsonNode.class);
+        return component.getMapper().convertValue(this, JsonNode.class);
     }
 
     /**
@@ -74,7 +77,7 @@ public abstract class Index {
      * @throws IOException
      */
     public static <T extends Index> T fromJson(String data, Class<T> from) throws IOException {
-        return ESPlugin.getPlugin().getMapper().readValue(data, from);
+        return component.getMapper().readValue(data, from);
     }
 
 

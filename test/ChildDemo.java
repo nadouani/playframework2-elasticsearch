@@ -18,4 +18,6 @@ public class ChildDemo extends Index {
         this.value = value;
     }
 
+    public ChildDemo(){}
+
 }
