@@ -4,11 +4,9 @@ import play.Application;
 import play.Environment;
 import play.Mode;
 import play.inject.guice.GuiceApplicationBuilder;
-import play.inject.guice.Guiceable;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 
 import static org.fest.assertions.api.Assertions.assertThat;
 import static play.test.Helpers.running;
@@ -18,18 +16,10 @@ public class PluginTest {
     private final static long timeOut = 1000;
 
     private Application esFakeApplication() {
-        HashMap<String, Object> config = new HashMap<>();
-        config.put("es.client", "127.0.0.1:9300");
-        config.put("es.enabled", true);
-        config.put("es.log", true);
-        //config.put("es.index", "play-testindex");
-
         return new GuiceApplicationBuilder()
                 .in(Environment.simple())
                 .in(Mode.TEST)
-                .in(ClassLoader.getSystemClassLoader())
-                .load(Guiceable.modules(new ESModule()))
-                .configure(config)
+                .load(new ESModule())
                 .build();
     }
 
@@ -42,10 +32,11 @@ public class PluginTest {
     @Test
     public void indexName() {
             running(esFakeApplication(), () -> {
+                assertThat(1).isNotNull();
+
                 DemoType demo = demoFactory();
                 assertThat(demo).isNotNull();
                 assertThat(demo.find).isNotNull();
-                //assertThat(demo.find.component).isNotNull();
 
                 //assertThat(DemoType.find).isNotNull();
                 //assertThat(DemoType.find.component).isNotNull();

@@ -13,8 +13,9 @@ public class ESModule extends Module {
 
     @Override
     public Seq<Binding<?>> bindings(Environment environment, Configuration configuration) {
-        ESPlugin.setConfiguration(configuration);
-        return seq(bind(ESComponent.class).to(ESPlugin.class).eagerly());
+        System.out.println("loading module");
+        Config.setConfig(configuration);
+        return seq(bind(ESComponent.class).to(ElasticSearchPlugin.class).eagerly());
     }
 
 }

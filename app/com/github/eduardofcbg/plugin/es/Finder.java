@@ -51,7 +51,7 @@ import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
  */
 public class Finder <T extends Index> {
 
-    @Inject static ESComponent component;
+    @Inject public static ESComponent component;
 
     private Class<T> from;
 
