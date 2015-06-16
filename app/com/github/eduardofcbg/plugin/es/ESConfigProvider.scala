@@ -16,7 +16,7 @@ import scala.concurrent._
 /**
  * Created by eduardo on 13-06-2015.
  */
-@Singleton
+//@Singleton
 class ESConfigProvider @Inject() (lifecycle: ApplicationLifecycle, config: Configuration) extends Provider[ESConfig] {
 
   private var client: Client = null
