@@ -1,4 +1,3 @@
-import com.github.eduardofcbg.plugin.es.Finder;
 import com.github.eduardofcbg.plugin.es.Index;
 import com.github.eduardofcbg.plugin.es.Type;
 
@@ -12,7 +11,7 @@ public class ParentDemo extends Index {
     @Type.NestedField
     public NestedDemo nested;
 
-    public static Finder<ParentDemo> find = new Finder<>(ParentDemo.class);
+    //public static Finder<ParentDemo> find = new Finder<>(ParentDemo.class);
 
     public ParentDemo(String location, int number, NestedDemo nested) {
         this.location = location;

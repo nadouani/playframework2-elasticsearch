@@ -1,6 +1,7 @@
 package com.github.eduardofcbg.plugin.es
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import javax.inject._
+
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.settings.ImmutableSettings
@@ -8,27 +9,28 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.elasticsearch.node.Node
 import org.elasticsearch.node.NodeBuilder._
 import play.api.Configuration
-import play.libs.Json
+import play.api.inject._
+
+import scala.concurrent._
 
 /**
  * Created by eduardo on 13-06-2015.
  */
-class ElasticSearchPlugin extends ESComponent {
+@Singleton
+class ESConfigProvider @Inject() (lifecycle: ApplicationLifecycle, config: Configuration) extends Provider[ESConfig] {
 
-  val config: Configuration = Config.myConfig
+  private var client: Client = null
+  private var node: Node = null
+
+  lifecycle.addStopHook(() => {
+    if (local) node.close()
+    Future.successful(client.close())
+  })
 
   val local = config getBoolean("es.embed") getOrElse(false)
   if (local) createNode
   else setTransportClient
   setMappings
-
-  /*lifecycle.addStopHook(() => {
-    if (local) node.close()
-    Future.successful(client.close())
-  })*/
-
-  private var client: Client = null
-  private var node: Node = null
 
   private def setTransportClient = {
     println("creating client node!!")
@@ -59,19 +61,22 @@ class ElasticSearchPlugin extends ESComponent {
     )
   }
 
-  override def getClient: Client = client
+  override def get(): ESConfig = new ESConfigSet(getClient, log, indexName())
 
-  override def getMapper: ObjectMapper = Json.mapper()
+  private def getClient: Client = client
 
-  override def log(): Boolean = config.getBoolean("es.log") getOrElse(false)
+  private def log(): Boolean = config.getBoolean("es.log") getOrElse(false)
 
-  override def indexName(): String = "play-es_test"
+  private def indexName(): String = "play-es_test"
 
 }
 
-object Config {
-  var myConfig: Configuration = null
-  def setConfig(configuration: Configuration): Unit = {
-    myConfig = configuration;
-  }
+class ESConfigSet[T <: Index](client: Client, logFlag: Boolean, index: String) extends ESConfig {
+
+  override def getClient: Client = client
+
+  override def log: Boolean = logFlag
+
+  override def indexName: String = index
+
 }

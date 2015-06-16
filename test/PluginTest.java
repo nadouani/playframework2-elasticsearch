@@ -28,7 +28,6 @@ public class PluginTest {
                 Collections.singletonMap("key1", new DemoType.Demo(66, Arrays.asList(12, 15))));
     }
 
-
     @Test
     public void indexName() {
             running(esFakeApplication(), () -> {

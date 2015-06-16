@@ -1,6 +1,7 @@
-import com.github.eduardofcbg.plugin.es.Finder;
+import com.github.eduardofcbg.plugin.es.ESConfig;
 import com.github.eduardofcbg.plugin.es.Index;
 import com.github.eduardofcbg.plugin.es.Type;
+import com.google.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,10 @@ public class DemoType extends Index {
     private List<String> things;
     private Map<String, Demo> map;
 
-    public static Finder<DemoType> find = new Finder<>(DemoType.class);
+    //public static Finder<DemoType> find = new Finder<>(DemoType.class);
+    @Inject
+    ESConfig<DemoType> es;
+
 
     public DemoType(String name, int age, List<String> things, Map<String, Demo> map) {
         this.name = name;
