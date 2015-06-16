@@ -1,7 +1,6 @@
 package com.github.eduardofcbg.plugin.es;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.inject.Inject;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -31,6 +30,7 @@ import play.libs.F.Promise;
 import play.libs.F.RedeemablePromise;
 import play.libs.Json;
 
+import javax.inject.Inject;
 import javax.inject.Provider;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -53,16 +53,19 @@ import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 public class Finder <T extends Index> {
 
     @Inject
-    private static Provider<ESConfig> config;
-    @Inject
-    private Provider<ESType<T>> type;
+    public static Provider<ESConfig> config;
 
     private static String index = config.get().indexName();
     private static Client client = config.get().getClient();
 
     private Class<T> from;
 
-    public Finder() {
+    /**
+     * Creates a finder for querying ES cluster
+     * @param from Types's class or the class that instantiates this helper.
+     */
+    public Finder(Class<T> from) {
+        this.from = from;
         try {
             setParentMapping();
             setNestedFields();
@@ -71,9 +74,13 @@ public class Finder <T extends Index> {
         }
     }
 
-
-/*
-    public Finder() {
+    /**
+     * Creates a finder and adds a custom mapping for the type associated with it.
+     * @param from Types's class or the class that instantiates this helper.
+     * @param consumer A consumer to construct the mapping via side effects.
+     */
+    public Finder(Class<T> from, Consumer<XContentBuilder> consumer) {
+        this.from = from;
         try {
             setParentMapping();
             setNestedFields();
@@ -88,7 +95,6 @@ public class Finder <T extends Index> {
             e.printStackTrace();
         }
     }
-*/
 
     public Promise<IndexResponse> index(T toIndex, Consumer<IndexRequestBuilder> consumer) {
         return indexChild(toIndex, null, consumer);

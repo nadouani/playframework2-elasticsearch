@@ -10,8 +10,7 @@ class ESModule[T <: Index] extends Module {
 
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = {
     Seq(
-      bind[ESConfig].toProvider[ESConfigProvider].eagerly,
-      bind[ESType[T]].toProvider[ESTypeProvider[T]].eagerly
+      bind[ESConfig].toProvider[ESConfigProvider].eagerly
     )
   }
 

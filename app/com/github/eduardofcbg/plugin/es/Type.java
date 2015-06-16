@@ -1,6 +1,5 @@
 package com.github.eduardofcbg.plugin.es;
 
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

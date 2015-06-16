@@ -1,6 +1,6 @@
 package com.github.eduardofcbg.plugin.es
 
-import javax.inject._
+import javax.inject.{Provider, Inject}
 
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.transport.TransportClient
@@ -9,7 +9,7 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.elasticsearch.node.Node
 import org.elasticsearch.node.NodeBuilder._
 import play.api.Configuration
-import play.api.inject._
+import play.api.inject.ApplicationLifecycle
 
 import scala.concurrent._
 
