@@ -44,18 +44,18 @@ Add the following line to `conf/play.plugins` file. If it doesn't exist you can 
 9000:com.github.eduardofcbg.plugin.es.ESPlugin
 ```
 
-You should also configure the plugin in `conf/application.conf`
+You should enable and configure the plugin in `conf/application.conf`
 
 ```
-## ElasticSearch Configuration
+## ElasticSearch
 
 ## Enable the plugin
-es.enabled=true
+play.modules.enabled += "com.github.eduardofcbg.plugin.es.ESModule"
+
 es.embed=false
 
-## Coma-separated list of clients
-es.client="127.0.0.1:9300"
-# ex : es.client="192.168.0.46:9300,192.168.0.47:9300"
+## List of hosts
+es.hosts=["127.0.0.1:9300"]
 
 ## Name of the index (defaults to "play-es")
 #es.index="play-es"
