@@ -36,13 +36,7 @@ libraryDependencies ++= Seq(
 )
 ```
 
-## Enable the plugin
-
-Add the following line to `conf/play.plugins` file. If it doesn't exist you can create it.
-
-```
-9000:com.github.eduardofcbg.plugin.es.ESPlugin
-```
+## Configure the plugin
 
 You should enable and configure the plugin in `conf/application.conf`
 
