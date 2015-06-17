@@ -50,7 +50,7 @@ import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
  * that is is associated with each ES type.
  * @param <T> The type of your model
  */
-public class Finder <T extends Index> implements ES {
+public class Finder <T extends Index> {
 
     @Inject
     public static Provider<ESConfig> config;
@@ -108,10 +108,6 @@ public class Finder <T extends Index> implements ES {
      */
     public Promise<IndexResponse> index(T toIndex) {
         return indexChild(toIndex, null, null);
-    }
-
-    public Integer ola() {
-        return 32;
     }
 
     /**
