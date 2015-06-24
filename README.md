@@ -78,7 +78,7 @@ public class Person extends Index {
 	public String name;
 	public int age;
 	
-	public static final Finder<Person> find = new Finder<Person>(Person.class);
+	public static final Finder<Person> find = finder(Person.class);
 	
 	public Person(String name, int age) {
 		this.name = name;
@@ -93,9 +93,9 @@ public class Person extends Index {
 		return find.get(id);
 	}
 					
-    public static F.Promise<List<Person>> getAdults() {
-        return find.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(18)));
-    }
+        public static F.Promise<List<Person>> getAdults() {
+        	return find.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(18)));
+        }
 	
 }
 ```
@@ -106,6 +106,11 @@ All the finder's methods are asynchronous. They return `Promises` which can be e
 ```java
 public class PersonController extends Controller {
 
+    @Inject
+    public PersonController(ES es) {
+        Person.registerAsType(Student.class, es);
+    }
+
     public static F.Promise<Result> getAdults() {
         return Person.getAdults().map(persons -> {
             return ok(listOfPerson.render(persons));
@@ -114,6 +119,7 @@ public class PersonController extends Controller {
 
 }
 ```
+Additionally, every controller should register the type associated with it.
 
 Of course you can also get the ES transport client by calling:
 
@@ -137,8 +143,6 @@ Person person = find.parse(response);
 List<Person> persons = find.parse(response);
 ```
 
-This plugin uses it's own Jackson ObjectMapper for indexing and parsing responses. You can customize it by simply passing a different one: `Finder.setMapper(mymapper)`.
-
 ##Dealing with concurrency problems
 
 ElasticSearch uses the [Optimistic concurrency control](https://www.elastic.co/guide/en/elasticsearch/guide/master/optimistic-concurrency-control.html#optimistic-concurrency-control) method. This plugin allows one to update a document without having to deal with the case when there are such problems.
@@ -158,7 +162,7 @@ An update can be done by specifying the document's Id and a Function that will b
 You are able to set mappings in your index using the `application.conf`, but mappings that affect specific types should be specified in your actual models just by passing them when you create the Find helper.
 
 ```java
-public static final Finder<Person> finder = new Finder<>(Person.class, m -> {
+public static final Finder<Person> finder = finder(Person.class, m -> {
     try {
         m.startObject("_timestamp")
                 .field("enabled", true)
@@ -181,7 +185,7 @@ public class Person extends Index {
 	@Type.NestedField
 	public List<Book> books;
 	
-	public static final Finder<Person> find = new Finder<Person>(Person.class);
+	public static final Finder<Person> find = finder(Person.class);
 	
 	public Person(String name, int age) {
 		this.name = name;
@@ -204,7 +208,7 @@ public class Pet extends Index {
 
 	public String name;	
 	
-	public static final Finder<Pet> find = new Finder<Pet>(Pet.class);
+	public static final Finder<Pet> find = finder(Pet.class);
 	
 	public Pet(String name) {
 		this.name = name;
