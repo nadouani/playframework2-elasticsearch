@@ -51,27 +51,23 @@ import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 public class Finder<T extends Index> {
 
     private Class<T> from;
-    private Client client;
-    private String indexName;
+
+    private static Client esClient;
+    private static String EsIndexName;
 
     /**
      * Creates a finder for querying ES cluster
      */
     public Finder(Class<T> from, Client client, String indexName) {
         this.from = from;
-        this.client = client;
-        this.indexName = indexName;
+        esClient = client;
+        EsIndexName = indexName;
         try {
             setParentMapping();
             setNestedFields();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public Finder setType(Class from) {
-        this.from = from;
-        return this;
     }
 
 /*
@@ -495,7 +491,7 @@ public class Finder<T extends Index> {
     }
 
 
-    private PutMappingResponse setMapping(XContentBuilder mapping) {
+    public PutMappingResponse setMapping(XContentBuilder mapping) {
         try {
             return getClient().admin().indices().preparePutMapping(getIndex())
                     .setType(getType())
@@ -554,12 +550,12 @@ public class Finder<T extends Index> {
         } catch(NullPointerException e) {} return null;
     }
 
-    public String getIndex() {
-        return indexName;
+    public static String getIndex() {
+        return EsIndexName;
     }
 
-    public Client getClient() {
-        return client;
+    public static Client getClient() {
+        return esClient;
     }
 
 }

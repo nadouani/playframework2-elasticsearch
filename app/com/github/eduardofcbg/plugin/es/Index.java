@@ -2,10 +2,14 @@ package com.github.eduardofcbg.plugin.es;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import play.libs.Json;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.function.Consumer;
+
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 /**
  * A object that is associated with a document on the ES server. Models to be saved in the cluster should
@@ -16,6 +20,30 @@ public abstract class Index {
     private Optional<String> id;
     private Optional<Long> version;
     private long timestamp;
+
+    @JsonIgnore
+    private static Finder finder;
+
+    public static <T extends Index> void registerAsType(Class<T> model, ES es) {
+        finder = new Finder<T>(model, es.getClient(), es.indexName());
+    }
+
+    public static <T extends Index> Finder<T> finder(Class<T> from) {
+        return (Finder<T>) finder;
+    }
+
+    public static <T extends Index> Finder<T> finder(Class<T> from, Consumer<XContentBuilder> consumer) {
+        XContentBuilder builder = null;
+        try {
+            builder = jsonBuilder().startObject();
+            builder.startObject(finder.getType());
+            consumer.accept(builder);
+            builder.endObject();
+            builder.endObject();
+            finder.setMapping(builder);
+        } catch (IOException e) {e.printStackTrace();}
+        return (Finder<T>) finder;
+    }
 
     public Index() {
         super();

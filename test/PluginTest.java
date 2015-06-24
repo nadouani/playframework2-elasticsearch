@@ -1,25 +1,24 @@
+import com.github.eduardofcbg.plugin.es.ES;
 import com.github.eduardofcbg.plugin.es.ESModule;
 import org.junit.Test;
-import play.Application;
 import play.Environment;
 import play.Mode;
+import play.inject.Injector;
 import play.inject.guice.GuiceApplicationBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static play.test.Helpers.running;
-
 public class PluginTest {
 
     private final static long timeOut = 1000;
 
-    private Application esFakeApplication() {
+    private Injector esFakeApplication() {
         return new GuiceApplicationBuilder()
                 .in(Environment.simple())
                 .in(Mode.TEST)
                 .load(new ESModule())
-                .build();
+                .injector();
     }
 
     private DemoType demoFactory() {
@@ -29,19 +28,19 @@ public class PluginTest {
 
     @Test
     public void indexName() {
-            running(esFakeApplication(), () -> {
-                //assertThat(1).isNotNull();
+            ES es = esFakeApplication().instanceOf(ES.class);
+            play.Logger.warn(es.indexName());
+            //assertThat(1).isNotNull();
 
-                DemoType demo = demoFactory();
+            //DemoType demo = demoFactory();
 
-                //assertThat(demo).isNotNull();
-                //assertThat(demo.find).isNotNull();
+            //assertThat(demo).isNotNull();
+            //assertThat(demo.find).isNotNull();
 
-                //assertThat(DemoType.find).isNotNull();
-                //assertThat(DemoType.find.component).isNotNull();
-            //assertThat(DemoType.find.getClient()).isNotNull();
-            //  assertThat(DemoType.find.getIndex()).isEqualTo("play-ess");
-        });
+            //assertThat(DemoType.find).isNotNull();
+            //assertThat(DemoType.find.component).isNotNull();
+        //assertThat(DemoType.find.getClient()).isNotNull();
+        //  assertThat(DemoType.find.getIndex()).isEqualTo("play-ess");
     }
 
 /*

@@ -23,12 +23,14 @@ class ESConfig @Inject() (config: Configuration, lifecycle: ApplicationLifecycle
   private var client: Client = null
   private var node: Node = null
 
+  private val index: String = config getString("es.index") getOrElse("play-es")
+  private val log: Boolean = config getBoolean("es.log") getOrElse(false)
+  private val local = config getBoolean("es.embed") getOrElse(false)
+
   lifecycle.addStopHook(() => {
     if (local) node.close()
     Future.successful(client.close())
   })
-
-  val local = config getBoolean("es.embed") getOrElse(false)
 
   if (local) createNode
   else setTransportClient
@@ -36,7 +38,6 @@ class ESConfig @Inject() (config: Configuration, lifecycle: ApplicationLifecycle
   setMappings
 
   private def setTransportClient = {
-    println("creating client node!!")
     val settings: ImmutableSettings.Builder = ImmutableSettings.settingsBuilder
 
     config getBoolean("es.sniff") foreach (s => settings.put("client.transport.sniff", s))
@@ -64,21 +65,18 @@ class ESConfig @Inject() (config: Configuration, lifecycle: ApplicationLifecycle
     )
   }
 
-  //override def find(typeClass: Class[T]): Finder[T] = new Finder[T](typeClass, getClient, indexName)
+  override def toLog = log
 
-  override def log = config.getBoolean("es.log") getOrElse(false)
-
-  override def indexName = "play-es_test"
+  override def indexName = index
 
   override def getClient = client
 
 }
 
-@ImplementedBy(classOf[ESConfig])
 trait ES {
 
   def getClient: Client
   def indexName: String
-  def log: Boolean
+  def toLog: Boolean
 
 }
