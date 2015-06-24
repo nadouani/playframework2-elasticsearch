@@ -108,7 +108,7 @@ public class PersonController extends Controller {
 
     @Inject
     public PersonController(ES es) {
-        Person.registerAsType(Student.class, es);
+        Person.registerAsType(Person.class, es);
     }
 
     public static F.Promise<Result> getAdults() {
