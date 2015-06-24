@@ -1,10 +1,10 @@
-Plugin that integrates Elasticsearch into your PlayFramework app.
+Module that integrates Elasticsearch into your PlayFramework app.
 
 ## Install
 
-This plugin requres PlayFramework 2.4.
+This module requres PlayFramework 2.4.
 
-Clone this plugin and add it to the local repository
+Clone this module and add it to the local repository.
 
 ~~~ sh
 $ git clone https://github.com/eduardofcbg/playframework2-elasticsearch.git
