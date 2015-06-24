@@ -30,8 +30,6 @@ import play.libs.F.Promise;
 import play.libs.F.RedeemablePromise;
 import play.libs.Json;
 
-import javax.inject.Inject;
-import javax.inject.Provider;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -50,22 +48,19 @@ import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
  * that is is associated with each ES type.
  * @param <T> The type of your model
  */
-public class Finder <T extends Index> {
-
-    @Inject
-    public static Provider<ESConfig> config;
-
-    private static String index = config.get().indexName();
-    private static Client client = config.get().getClient();
+public class Finder<T extends Index> {
 
     private Class<T> from;
+    private Client client;
+    private String indexName;
 
     /**
      * Creates a finder for querying ES cluster
-     * @param from Types's class or the class that instantiates this helper.
      */
-    public Finder(Class<T> from) {
+    public Finder(Class<T> from, Client client, String indexName) {
         this.from = from;
+        this.client = client;
+        this.indexName = indexName;
         try {
             setParentMapping();
             setNestedFields();
@@ -74,13 +69,19 @@ public class Finder <T extends Index> {
         }
     }
 
-    /**
-     * Creates a finder and adds a custom mapping for the type associated with it.
-     * @param from Types's class or the class that instantiates this helper.
-     * @param consumer A consumer to construct the mapping via side effects.
-     */
-    public Finder(Class<T> from, Consumer<XContentBuilder> consumer) {
+    public Finder setType(Class from) {
         this.from = from;
+        return this;
+    }
+
+/*
+    */
+/**
+     * Creates a finder and adds a custom mapping for the type associated with it.
+     * @param consumer A consumer to construct the mapping via side effects.
+     *//*
+
+    public Finder(Consumer<XContentBuilder> consumer) {
         try {
             setParentMapping();
             setNestedFields();
@@ -95,6 +96,7 @@ public class Finder <T extends Index> {
             e.printStackTrace();
         }
     }
+*/
 
     public Promise<IndexResponse> index(T toIndex, Consumer<IndexRequestBuilder> consumer) {
         return indexChild(toIndex, null, consumer);
@@ -552,12 +554,12 @@ public class Finder <T extends Index> {
         } catch(NullPointerException e) {} return null;
     }
 
-    public static String getIndex() {
-        return index;
+    public String getIndex() {
+        return indexName;
     }
 
-    public static Client getClient() {
-        return  client;
+    public Client getClient() {
+        return client;
     }
 
 }

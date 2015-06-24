@@ -1,17 +1,16 @@
 package com.github.eduardofcbg.plugin.es
 
-import play.api._
-import play.api.inject._
+import play.api.{Configuration, Environment}
+import play.api.inject.{Binding, Module}
 
 /**
- * Created by eduardo on 16-06-2015.
+ * Created by eduardo on 22-06-2015.
  */
-class ESModule[T <: Index] extends Module {
+class ESModule extends Module {
 
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = {
-    play.Logger.warn("loginndiwd");
     Seq(
-      bind[ESConfig].toProvider[ESConfigProvider].eagerly
+      bind[ES].to[ESConfig]
     )
   }
 

@@ -1,3 +1,1 @@
-
-GET        /        controllers.C.ole()
-GET         /1      controllers.C.oo()
+GET /ola controllers.Application.test
