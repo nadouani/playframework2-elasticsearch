@@ -93,9 +93,9 @@ public class Person extends Index {
 		return find.get(id);
 	}
 					
-        public static F.Promise<List<Person>> getAdults() {
-        	return find.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(18)));
-        }
+	public static F.Promise<List<Person>> getAdults() {
+		return find.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(18)));
+	}
 	
 }
 ```
