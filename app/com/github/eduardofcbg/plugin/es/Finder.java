@@ -52,16 +52,18 @@ public class Finder<T extends Index> {
 
     private Class<T> from;
 
-    private static Client esClient;
-    private static String EsIndexName;
+    private static Client esClient = null;
+    private static String EsIndexName = null;
 
     /**
      * Creates a finder for querying ES cluster
      */
     public Finder(Class<T> from, Client client, String indexName) {
         this.from = from;
-        esClient = client;
-        EsIndexName = indexName;
+        if (esClient == null || EsIndexName == null) {
+            esClient = client;
+            EsIndexName = indexName;
+        }
         try {
             setParentMapping();
             setNestedFields();
@@ -69,30 +71,6 @@ public class Finder<T extends Index> {
             e.printStackTrace();
         }
     }
-
-/*
-    */
-/**
-     * Creates a finder and adds a custom mapping for the type associated with it.
-     * @param consumer A consumer to construct the mapping via side effects.
-     *//*
-
-    public Finder(Consumer<XContentBuilder> consumer) {
-        try {
-            setParentMapping();
-            setNestedFields();
-
-            XContentBuilder builder = jsonBuilder().startObject();
-            builder.startObject(getType());
-            consumer.accept(builder);
-            builder.endObject();
-            builder.endObject();
-            setMapping(builder);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-*/
 
     public Promise<IndexResponse> index(T toIndex, Consumer<IndexRequestBuilder> consumer) {
         return indexChild(toIndex, null, consumer);
