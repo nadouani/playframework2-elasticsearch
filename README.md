@@ -230,5 +230,4 @@ public class Pet extends Index {
 }
 ```
 
-For more details check the unit tests.
-
+A sample application based on this guide can be found [here](https://github.com/mantsak/playframework2-elasticsearch-sample)
