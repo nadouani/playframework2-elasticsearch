@@ -60,10 +60,8 @@ public class Finder<T extends Index> {
      */
     public Finder(Class<T> from, Client client, String indexName) {
         this.from = from;
-        if (esClient == null || EsIndexName == null) {
-            esClient = client;
-            EsIndexName = indexName;
-        }
+        esClient = client;
+        EsIndexName = indexName;
         try {
             setParentMapping();
             setNestedFields();

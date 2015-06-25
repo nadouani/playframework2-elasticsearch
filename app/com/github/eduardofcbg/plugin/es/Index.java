@@ -25,8 +25,7 @@ public abstract class Index {
     private static Finder finder = null;
 
     public static <T extends Index> void registerAsType(Class<T> model, ES es) {
-        if (finder == null)
-            finder = new Finder<T>(model, es.getClient(), es.indexName());
+        finder = new Finder<T>(model, es.getClient(), es.indexName());
     }
 
     public static <T extends Index> Finder<T> finder(Class<T> from) {
