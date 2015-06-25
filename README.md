@@ -136,7 +136,7 @@ You also can get the index name and the type any model, just by accessing it's f
 Person.find.getType();
 ```
 ```java
-Finder.getIndex();
+Person.getIndex();
 ```
 
 There are also some methods that will help you parse a `SearchResponse` and a `GetResponse`:

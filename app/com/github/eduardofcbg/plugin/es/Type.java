@@ -18,6 +18,11 @@ public class Type {
     }
 
     @Retention(RetentionPolicy.RUNTIME)
+    public @interface Index {
+        String value();
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface Parent {
         String value();
     }

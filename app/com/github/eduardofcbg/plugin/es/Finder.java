@@ -547,7 +547,13 @@ public class Finder<T extends Index> {
         } catch(NullPointerException e) {} return 5;
     }
 
-    public static String getIndex() {
+    public String getIndex() {
+        try {
+            return from.getAnnotation(Type.Index.class).value();
+        } catch(NullPointerException e) {} return getDefaultIndex();
+    }
+
+    public static String getDefaultIndex() {
         return EsIndexName;
     }
 

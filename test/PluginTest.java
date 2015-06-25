@@ -40,7 +40,7 @@ public class PluginTest {
             //assertThat(DemoType.find).isNotNull();
             //assertThat(DemoType.find.component).isNotNull();
         //assertThat(DemoType.find.getClient()).isNotNull();
-        //  assertThat(DemoType.find.getIndex()).isEqualTo("play-ess");
+        //  assertThat(DemoType.find.getDefaultIndex()).isEqualTo("play-ess");
     }
 
 /*
@@ -61,7 +61,7 @@ public class PluginTest {
             
             IndexResponse response = DemoType.find.index(demo).get(timeOut);
             assertThat(response).isNotNull();
-            //assertThat(response.getIndex()).isEqualTo("play-es");
+            //assertThat(response.getDefaultIndex()).isEqualTo("play-es");
             //assertThat(response.getType()).isEqualTo("demoindex");
             assertThat(response.isCreated()).isTrue();
 
