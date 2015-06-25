@@ -178,7 +178,7 @@ Additionally, if you want to set a parent-child relationship or a nested type, i
 ```java
 package models;
 
-@Type.Name("person")~
+@Type.Name("person")
 @Type.ResultsPerPage(5)
 public class Person extends Index {
 
