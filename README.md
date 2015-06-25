@@ -73,6 +73,7 @@ On each model add a find helper. This is the object that you will use query your
 package models;
 
 @Type.Name("person")
+@Type.ResultsPerPage(5)
 public class Person extends Index {
 
 	public String name;
@@ -93,8 +94,8 @@ public class Person extends Index {
 		return find.get(id);
 	}
 					
-	public static F.Promise<List<Person>> getAdults() {
-		return find.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(18)));
+	public static F.Promise<List<Person>> getAdults(int page) {
+		return find.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(18)), page);
 	}
 	
 }
@@ -111,15 +112,15 @@ public class PersonController extends Controller {
         Person.registerAsType(Person.class, es);
     }
 
-    public static F.Promise<Result> getAdults() {
-        return Person.getAdults().map(persons -> {
+    public static F.Promise<Result> getAdults(int page) {
+        return Person.getAdults(page).map(persons -> {
             return ok(listOfPerson.render(persons));
         });
     }
 
 }
 ```
-Additionally, every controller should register the type associated with it.
+Additionally, every controller must register the type associated with it as seen above.
 
 Of course you can also get the ES transport client by calling:
 
@@ -192,8 +193,8 @@ public class Person extends Index {
 		this.age = age;
 	}
 	
-	public static F.Promise<List<Pet>> getPets(String personId) {
-	    return Pet.find.getAsChildrenOf(Person.class, personId);
+	public static F.Promise<List<Pet>> getPets(String personId, int page) {
+	    return Pet.find.getAsChildrenOf(Person.class, personId, page);
 	}
 		
 }

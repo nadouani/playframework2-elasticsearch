@@ -171,6 +171,7 @@ public class Finder<T extends Index> {
                 promise.success(bulkItemResponses);
 
             }
+
             @Override
             public void onFailure(Throwable throwable) {
                 promise.failure(throwable);
@@ -238,10 +239,11 @@ public class Finder<T extends Index> {
         builder.execute(new ActionListener<DeleteResponse>() {
             @Override
             public void onResponse(DeleteResponse deleteResponse) {
-            	if (!deleteResponse.isFound())
-            		promise.failure(new NullPointerException("No item found to be deleted."));
+                if (!deleteResponse.isFound())
+                    promise.failure(new NullPointerException("No item found to be deleted."));
                 else promise.success(deleteResponse);
             }
+
             @Override
             public void onFailure(Throwable throwable) {
                 promise.failure(throwable.getCause());
@@ -282,8 +284,9 @@ public class Finder<T extends Index> {
      * @return If no consumer is specified, returns the promise (async) of a list containing all indexed documents
      * of the model's type.
      */
-    public Promise<List<T>> search(Consumer<SearchRequestBuilder> consumer) {
+    public Promise<List<T>> search(Consumer<SearchRequestBuilder> consumer, int page) {
         SearchRequestBuilder builder = getClient().prepareSearch(getIndex()).setTypes(getType());
+        builder.setFrom(page*resultsPerPage()).setSize(resultsPerPage());
         if (consumer != null) consumer.accept(builder);
 
         RedeemablePromise<List<T>> promise = RedeemablePromise.empty();
@@ -454,17 +457,29 @@ public class Finder<T extends Index> {
         return bean;
     }
 
-    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, String parentId, QueryBuilder query) {
+    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, String parentId, QueryBuilder query, int page) {
+        return getAsChildrenOf(parentType, parentId, query, null, page);
+    }
+
+    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, QueryBuilder query, int page) {
+        return getAsChildrenOf(parentType, query, null, page);
+    }
+
+    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, String parentId, QueryBuilder query, Consumer<SearchRequestBuilder> consumer, int page) {
         return search(s -> {
             s.setQuery(QueryBuilders.hasParentQuery(getType(parentType), QueryBuilders.filteredQuery(query,
                     FilterBuilders.termFilter("_id", parentId))));
-        });
+            if (consumer != null)
+                consumer.accept(s);
+        }, page);
     }
 
-    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, QueryBuilder query) {
+    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, QueryBuilder query, Consumer<SearchRequestBuilder> consumer, int page) {
         return search(s -> {
             s.setQuery(QueryBuilders.hasParentQuery(parentType.getTypeName(), query));
-        });
+            if (consumer != null)
+                consumer.accept(s);
+        }, page);
     }
 
     /**
@@ -473,8 +488,8 @@ public class Finder<T extends Index> {
      * @param parentType Type name of the parent document
      * @return Promise (async) of a list of parsed search results
      */
-    public <B extends Index> F.Promise<List<T>> getAllAsChildrenOf(Class<B> parentType) {
-        return search(s -> s.setQuery(QueryBuilders.hasParentQuery(parentType.getTypeName(), matchAllQuery())));
+    public <B extends Index> F.Promise<List<T>> getAllAsChildrenOf(Class<B> parentType, int page) {
+        return search(s -> s.setQuery(QueryBuilders.hasParentQuery(parentType.getTypeName(), matchAllQuery())), page);
     }
 
     /**
@@ -483,11 +498,11 @@ public class Finder<T extends Index> {
      * @param parentType Type name of the parent document
      * @return Promise (async) of a list of parsed search results
      */
-    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, String parentId) {
+    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, String parentId, int page) {
         return search(s -> {
             s.setQuery(QueryBuilders.hasParentQuery(getType(parentType), QueryBuilders.filteredQuery(QueryBuilders.matchAllQuery(),
                     FilterBuilders.termFilter("_id", parentId))));
-        });
+        }, page);
     }
 
 
@@ -548,6 +563,12 @@ public class Finder<T extends Index> {
         try {
             return from.getAnnotation(Type.Parent.class).value();
         } catch(NullPointerException e) {} return null;
+    }
+
+    public int resultsPerPage() {
+        try {
+            return from.getAnnotation(Type.ResultsPerPage.class).value();
+        } catch(NullPointerException e) {} return 5;
     }
 
     public static String getIndex() {

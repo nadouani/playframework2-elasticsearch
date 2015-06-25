@@ -13,6 +13,11 @@ public class Type {
     }
 
     @Retention(RetentionPolicy.RUNTIME)
+    public @interface ResultsPerPage {
+        int value();
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface Parent {
         String value();
     }
