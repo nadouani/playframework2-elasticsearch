@@ -22,10 +22,11 @@ public abstract class Index {
     private long timestamp;
 
     @JsonIgnore
-    private static Finder finder;
+    private static Finder finder = null;
 
     public static <T extends Index> void registerAsType(Class<T> model, ES es) {
-        finder = new Finder<T>(model, es.getClient(), es.indexName());
+        if (finder == null)
+            finder = new Finder<T>(model, es.getClient(), es.indexName());
     }
 
     public static <T extends Index> Finder<T> finder(Class<T> from) {
