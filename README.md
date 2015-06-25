@@ -86,6 +86,8 @@ public class Person extends Index {
 		this.age = age;
 	}
 	
+	public Person() {}
+	
 	public F.Promise<IndexResponse> index() {
 		return find.index(this);
 	}
@@ -179,6 +181,7 @@ Additionally, if you want to set a parent-child relationship or a nested type, i
 package models;
 
 @Type.Name("person")
+@Type.ResultsPerPage(5)
 public class Person extends Index {
 
 	public String name;
@@ -193,6 +196,8 @@ public class Person extends Index {
 		this.age = age;
 	}
 	
+	public Person() {}
+	
 	public static F.Promise<List<Pet>> getPets(String personId, int page) {
 	    return Pet.find.getAsChildrenOf(Person.class, personId, page);
 	}
@@ -205,6 +210,7 @@ package models;
 
 @Type.Name("pet")
 @Type.Parent("person")
+@Type.ResultsPerPage(5)
 public class Pet extends Index {
 
 	public String name;	
@@ -214,6 +220,8 @@ public class Pet extends Index {
 	public Pet(String name) {
 		this.name = name;
 	}
+	
+	public Pet() {}
 	
 	public F.Promise<IndexResponse> index(String personId) {
 		return find.indexChild(this, personId);
