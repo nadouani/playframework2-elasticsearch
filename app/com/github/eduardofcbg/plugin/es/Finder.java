@@ -29,18 +29,21 @@ import play.libs.F;
 import play.libs.F.Promise;
 import play.libs.F.RedeemablePromise;
 import play.libs.Json;
+import play.mvc.Result;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
+import static play.mvc.Results.ok;
 
 
 /**
@@ -162,8 +165,16 @@ public class Finder<T extends Index> {
      * @return A promise (async) of the response given by the server
      * @throws java.lang.NullPointerException When the document is not found
      */
-    public Promise<T> get(String id) {
+    public Promise<Optional<T>> get(String id) {
         return getChild(id, null);
+    }
+
+    public static <T extends Index> Promise<Result> map(Promise<Optional<T>> promise, Result orelse) {
+        return null;
+    }
+
+    public Promise<Result> test(String id) {
+        return map(this.get(id), ok("not foun!"));
     }
 
     /**
@@ -172,23 +183,28 @@ public class Finder<T extends Index> {
      * @return A promise (async) of the response given by the server
      * @throws java.lang.NullPointerException When the document is not found
      */
-    public Promise<T> getChild(String id, String parentId) {
+    public Promise<Optional<T>> getChild(String id, String parentId) {
         GetRequestBuilder builder = getClient().prepareGet(getIndex(), getType(), id);
         if (parentId != null) builder.setParent(parentId);
 
-        RedeemablePromise<T> promise = RedeemablePromise.empty();
+        RedeemablePromise<Optional<T>> promise = RedeemablePromise.empty();
         builder.execute(new ActionListener<GetResponse>() {
             @Override
             public void onResponse(GetResponse getResponse) {
-                promise.success(parse(getResponse));
+                if (!getResponse.isExists()) {
+                    promise.success(Optional.empty());
+                } else {
+                    promise.success(Optional.of(parse(getResponse)));
+                }
             }
+
             @Override
             public void onFailure(Throwable throwable) {
                 throwable.printStackTrace();
                 promise.failure(throwable.getCause().getCause());
             }
         });
-        return F.Promise.wrap(promise.wrapped());
+        return Promise.wrap(promise.wrapped());
     }
 
     /**
@@ -287,10 +303,9 @@ public class Finder<T extends Index> {
      * @param version The excepted version of the document to update
      * @param change The function that can be passed that takes the original document and returns the one to be saved
      * @return A promise (async) of the response given by ES server.
-     * @throws java.lang.NullPointerException When a document to update is not found
      */
-    public Promise<UpdateResponse> update(String id, long version, Function<T, T> change) {
-        T original = get(id).get(10000);
+    public Promise<UpdateResponse> update(String id, long version, Function<T, T> change) throws DocumentNotFound {
+        T original = get(id).get(10000).orElseThrow(() -> new DocumentNotFound());
         original.setVersion(version);
         return update(original, original.getId().get(), null, change);
     }
@@ -301,15 +316,14 @@ public class Finder<T extends Index> {
      * @param id The id of the document to update
      * @param change The function that can be passed that takes the original document and returns the one to be saved
      * @return The function that can be passed that takes the original document and returns the one to be saved
-     * @throws java.lang.NullPointerException When a document to update is not found
      */
-    public Promise<UpdateResponse> update(String id, Function<T, T> change) {
-        T original = get(id).get(10000);
+    public Promise<UpdateResponse> update(String id, Function<T, T> change) throws DocumentNotFound {
+        T original = get(id).get(10000).orElseThrow(() -> new DocumentNotFound());
         return update(original, original.getId().get(), null, change);
     }
 
-    public Promise<UpdateResponse> updateChild(String id, String parentId, Function<T, T> change) {
-        T original = get(id).get(10000);
+    public Promise<UpdateResponse> updateChild(String id, String parentId, Function<T, T> change) throws DocumentNotFound {
+        T original = get(id).get(10000).orElseThrow(() -> new DocumentNotFound());
         return update(original, original.getId().get(), parentId, change);
     }
 
@@ -359,12 +373,17 @@ public class Finder<T extends Index> {
                         while(!done) {
                             done = true;
                             try {
-                                T actual = get(id).get(10000);
-                                try {
-                                    UpdateResponse r = getClient().prepareUpdate(getIndex(), getType(), id)
-                                            .setDoc(Json.mapper().writeValueAsBytes(change.apply(actual)))
-                                            .setVersion(actual.getVersion().get()).get();
-                                } catch (JsonProcessingException e) {e.printStackTrace();}
+                                T actual = get(id).get(10000).get();
+                                if (actual != null) {
+                                    try {
+                                        UpdateResponse r = getClient().prepareUpdate(getIndex(), getType(), id)
+                                                .setDoc(Json.mapper().writeValueAsBytes(change.apply(actual)))
+                                                .setVersion(actual.getVersion().get()).get();
+                                    } catch (JsonProcessingException e) {e.printStackTrace();}
+                                } else {
+                                    promise.failure(new DocumentNotFound());
+                                    break;
+                                }
                             } catch(VersionConflictEngineException e) {
                                 done = false;
                             }
