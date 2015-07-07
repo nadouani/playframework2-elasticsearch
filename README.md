@@ -92,7 +92,7 @@ public class Person extends Index {
 		return find.index(this);
 	}
 	
-	public static F.Promise<Person> get(String id) {
+	public static F.Promise<Optional<Person>> get(String id) {
 		return find.get(id);
 	}
 					
@@ -117,6 +117,13 @@ public class PersonController extends Controller {
     public static F.Promise<Result> getAdults(int page) {
         return Person.getAdults(page).map(persons -> {
             return ok(listOfPerson.render(persons));
+        });
+    }
+    
+    public F.Promise<Result> getPerson(String id) {
+        return Person.get(id).map(p -> {
+            if (p.isPresent()) return ok(person.render(p.get()));
+            else return notFound("not found person with id " + id);
         });
     }
 

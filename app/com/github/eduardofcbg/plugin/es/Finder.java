@@ -29,7 +29,6 @@ import play.libs.F;
 import play.libs.F.Promise;
 import play.libs.F.RedeemablePromise;
 import play.libs.Json;
-import play.mvc.Result;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -43,7 +42,6 @@ import java.util.function.Function;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
-import static play.mvc.Results.ok;
 
 
 /**
@@ -167,14 +165,6 @@ public class Finder<T extends Index> {
      */
     public Promise<Optional<T>> get(String id) {
         return getChild(id, null);
-    }
-
-    public static <T extends Index> Promise<Result> map(Promise<Optional<T>> promise, Result orelse) {
-        return null;
-    }
-
-    public Promise<Result> test(String id) {
-        return map(this.get(id), ok("not foun!"));
     }
 
     /**
