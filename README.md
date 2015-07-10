@@ -111,7 +111,7 @@ public class PersonController extends Controller {
 
     @Inject
     public PersonController(ES es) {
-        Person.registerAsType(Person.class, es);
+        Person.registerAsType(es);
     }
 
     public static F.Promise<Result> getAdults(int page) {
