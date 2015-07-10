@@ -22,17 +22,18 @@ public abstract class Index {
     private long timestamp;
 
     @JsonIgnore
-    private static Finder finder = null;
+    private static ES client;
 
-    public static <T extends Index> void registerAsType(Class<T> model, ES es) {
-        finder = new Finder<T>(model, es.getClient(), es.indexName());
+    public static <T extends Index> void registerAsType(ES es) {
+        client = es;
     }
 
     public static <T extends Index> Finder<T> finder(Class<T> from) {
-        return (Finder<T>) finder;
+        return new Finder<T>(from, client.getClient(), client.indexName());
     }
 
     public static <T extends Index> Finder<T> finder(Class<T> from, Consumer<XContentBuilder> consumer) {
+        Finder<T> finder = new Finder(from, client.getClient(), client.indexName());
         XContentBuilder builder = null;
         try {
             builder = jsonBuilder().startObject();
@@ -42,7 +43,7 @@ public abstract class Index {
             builder.endObject();
             finder.setMapping(builder);
         } catch (IOException e) {e.printStackTrace();}
-        return (Finder<T>) finder;
+        return finder;
     }
 
     public Index() {
