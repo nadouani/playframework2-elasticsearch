@@ -97,7 +97,7 @@ public class Person extends Index {
 	}
 					
 	public static F.Promise<List<Person>> getAdults(int page) {
-		return find.search(s -> s.setPostFilter(FilterBuilders.rangeFilter("age").from(18)), page);
+		return find.search(s -> s.setQuery(rangeQuery("age").from(18)), page);
 	}
 	
 }
