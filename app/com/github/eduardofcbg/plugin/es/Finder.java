@@ -21,7 +21,6 @@ import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -41,8 +40,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
-import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
-
+import static org.elasticsearch.index.query.QueryBuilders.*;
 
 /**
  * Helper class that queries your elasticsearch cluster. Should be instantiated statically in your models, meaning
@@ -286,6 +284,31 @@ public class Finder<T extends Index> {
         return F.Promise.wrap(promise.wrapped());
     }
 
+    public Promise<List<T>> searchWhere(String key, String value, int page) {
+        return searchWhere(key, value, null, page);
+    }
+
+    public Promise<List<T>> searchWhere(String key, String value, Consumer<SearchRequestBuilder> consumer, int page) {
+        SearchRequestBuilder builder = getClient().prepareSearch(getIndex()).setTypes(getType());
+        builder.setQuery(termQuery(key, value));
+        builder.setFrom(page*resultsPerPage()).setSize(resultsPerPage());
+        if (consumer != null) consumer.accept(builder);
+
+        RedeemablePromise<List<T>> promise = RedeemablePromise.empty();
+        builder.execute(new ActionListener<SearchResponse>() {
+            @Override
+            public void onResponse(SearchResponse searchResponse) {
+                promise.success(parse(searchResponse));
+            }
+
+            @Override
+            public void onFailure(Throwable throwable) {
+                promise.failure(throwable);
+            }
+        });
+        return F.Promise.wrap(promise.wrapped());
+    }
+
     /**
      * Updated a document with the provided id. Before the update there will be made a get to get the current
      * state of the document
@@ -442,18 +465,13 @@ public class Finder<T extends Index> {
         return bean;
     }
 
-    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, String parentId, QueryBuilder query, int page) {
-        return getAsChildrenOf(parentType, parentId, query, null, page);
-    }
-
     public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, QueryBuilder query, int page) {
         return getAsChildrenOf(parentType, query, null, page);
     }
 
-    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, String parentId, QueryBuilder query, Consumer<SearchRequestBuilder> consumer, int page) {
+    public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, String parentId, Consumer<SearchRequestBuilder> consumer, int page) {
         return search(s -> {
-            s.setQuery(QueryBuilders.hasParentQuery(getType(parentType), QueryBuilders.filteredQuery(query,
-                    FilterBuilders.termFilter("_id", parentId))));
+            s.setQuery(QueryBuilders.hasParentQuery(getType(parentType), termQuery("_id", parentId)));
             if (consumer != null)
                 consumer.accept(s);
         }, page);
@@ -485,8 +503,7 @@ public class Finder<T extends Index> {
      */
     public <B extends Index> F.Promise<List<T>> getAsChildrenOf(Class<B> parentType, String parentId, int page) {
         return search(s -> {
-            s.setQuery(QueryBuilders.hasParentQuery(getType(parentType), QueryBuilders.filteredQuery(QueryBuilders.matchAllQuery(),
-                    FilterBuilders.termFilter("_id", parentId))));
+            s.setQuery(QueryBuilders.hasParentQuery(getType(parentType), termQuery("_id", parentId)));
         }, page);
     }
 

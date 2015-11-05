@@ -1,11 +1,11 @@
 package com.github.eduardofcbg.plugin.es
 
-import javax.inject.{Singleton, Inject}
+import java.net.InetSocketAddress
+import javax.inject.{Inject, Singleton}
 
-import com.google.inject.ImplementedBy
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.transport.TransportClient
-import org.elasticsearch.common.settings.ImmutableSettings
+import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.elasticsearch.node.Node
 import org.elasticsearch.node.NodeBuilder._
@@ -38,17 +38,17 @@ class ESConfig @Inject() (config: Configuration, lifecycle: ApplicationLifecycle
   setMappings
 
   private def setTransportClient = {
-    val settings: ImmutableSettings.Builder = ImmutableSettings.settingsBuilder
+    val settings = Settings.settingsBuilder();
 
     config getBoolean("es.sniff") foreach (s => settings.put("client.transport.sniff", s))
     config getInt ("es.timeout") foreach (p => settings.put("client.transport.ping_timeout", p))
     config getInt ("es.ping") foreach (p => settings.put("client.transport.nodes_sampler_interval", p))
 
-    val remoteClient = new TransportClient(settings.build)
+    val remoteClient = TransportClient.builder().settings(settings).build();
     config getStringSeq ("es.hosts") foreach (_.foreach(s => {
       remoteClient.addTransportAddress(
-        new InetSocketTransportAddress
-          (s.split(":")(0), s.split(":")(1) toInt))
+        new InetSocketTransportAddress(
+          new InetSocketAddress(s.split(":")(0), s.split(":")(1) toInt)))
     }))
     client = remoteClient
 
