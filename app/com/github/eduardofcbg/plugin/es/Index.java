@@ -29,7 +29,7 @@ public abstract class Index {
     }
 
     public static <T extends Index> Finder<T> finder(Class<T> from) {
-        return new Finder<T>(from, client.getClient(), client.indexName());
+        return new Finder<>(from, client.getClient(), client.indexName());
     }
 
     public static <T extends Index> Finder<T> finder(Class<T> from, Consumer<XContentBuilder> consumer) {
@@ -105,6 +105,10 @@ public abstract class Index {
      */
     public static <T extends Index> T fromJson(String data, Class<T> from) throws IOException {
         return Json.mapper().readValue(data, from);
+    }
+
+    public static String getIndexName() {
+        return client.indexName();
     }
 
 

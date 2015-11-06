@@ -49,16 +49,27 @@ import static org.elasticsearch.index.query.QueryBuilders.*;
  */
 public class Finder<T extends Index> {
 
-    private Class<T> from;
-
     private static Client esClient = null;
     private static String EsIndexName = null;
+
+    //only for java
+    private Class<T> from;
+
+
+    private String typeName;
+    private String indexName;
+    private String parentType;
+    private int resultPerPage;
 
     /**
      * Creates a finder for querying ES cluster
      */
     public Finder(Class<T> from, Client client, String indexName) {
         this.from = from;
+        this.typeName = getType(from);
+        this.indexName = getIndex(from);
+        this.parentType = getParentType(from);
+        this.resultPerPage = resultsPerPage(from);
         esClient = client;
         EsIndexName = indexName;
         try {
@@ -67,6 +78,14 @@ public class Finder<T extends Index> {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    //constructor called on the scala side
+    public Finder(String indexName, String typeName, String parentType, Integer resultPerPage) {
+        this.indexName = indexName;
+        this.parentType = parentType;
+        this.typeName = typeName;
+        this.resultPerPage = resultPerPage;
     }
 
     public Promise<IndexResponse> index(T toIndex, Consumer<IndexRequestBuilder> consumer) {
@@ -415,7 +434,11 @@ public class Finder<T extends Index> {
      * @return Simply the annotated type name on the model
      */
     public String getType() {
-        return getType(from);
+        return typeName;
+    }
+
+    public String getIndex() {
+        return indexName;
     }
 
     public static <B extends Index> String getType(Class<B> type) {
@@ -561,19 +584,27 @@ public class Finder<T extends Index> {
         play.Logger.debug("ES - Set " + field.getName() + " from " + getType() + " as nested field");
     }
 
-    public String getParentType() {
+    public static <T extends Index> String getParentType(Class<T> from) {
         try {
             return from.getAnnotation(Type.Parent.class).value();
         } catch(NullPointerException e) {} return null;
     }
 
-    public int resultsPerPage() {
+    public String getParentType() {
+        return parentType;
+    }
+
+    public static <T extends Index> int resultsPerPage(Class<T> from) {
         try {
             return from.getAnnotation(Type.ResultsPerPage.class).value();
         } catch(NullPointerException e) {} return 5;
     }
 
-    public String getIndex() {
+    public int resultsPerPage() {
+        return resultPerPage;
+    }
+
+    public static <T extends Index> String getIndex(Class<T> from) {
         try {
             return from.getAnnotation(Type.Index.class).value();
         } catch(NullPointerException e) {} return getDefaultIndex();
