@@ -4,7 +4,6 @@ import org.elasticsearch.action.search.SearchRequestBuilder
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import me.enkode.j8.Java8Converters._
 
 case class Person(name: String, age: Int) extends Index[Person]
 object Person extends Index[Person] {
@@ -16,6 +15,6 @@ object Person extends Index[Person] {
 
   val add = (s: SearchRequestBuilder) => {}
 
-  def getAdults = Finder.search(add.asJava, 0)
+  def getAdults = Finder.search(add, 0)
 
 }

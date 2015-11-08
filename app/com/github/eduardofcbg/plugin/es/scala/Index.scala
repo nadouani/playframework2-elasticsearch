@@ -2,10 +2,8 @@ package com.github.eduardofcbg.plugin.es.scala
 
 import play.api.libs.json.Format
 
-abstract class Index[T <: Index] {
+abstract class Index[T <: Index](var id: Option[String] = Option.empty, var version: Option[Long] = Option.empty) {
 
-  def id: Option[String] = Option.empty
-  def version: Option[Long] = Option.empty
   val timestamp = System.currentTimeMillis
 
   import com.github.eduardofcbg.plugin.es.{Index => IndexJ}
@@ -27,7 +25,6 @@ abstract class Index[T <: Index] {
 
   def Finder(typeName: String, resultPerPage: Integer)(implicit es: Format[T]): Finder[T]
     = new Finder[T](IndexJ.getIndexName, typeName: String, null, resultPerPage: Integer)
-
 
 }
 

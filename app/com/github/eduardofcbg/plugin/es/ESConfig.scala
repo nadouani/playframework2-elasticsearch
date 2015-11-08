@@ -12,7 +12,7 @@ import org.elasticsearch.node.NodeBuilder._
 import play.api.Configuration
 import play.api.inject.ApplicationLifecycle
 
-import scala.concurrent._
+import _root_.scala.concurrent.Future
 
 /**
  * Created by eduardo on 13-06-2015.
