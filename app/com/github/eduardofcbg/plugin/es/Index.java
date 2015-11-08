@@ -15,7 +15,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
  * A object that is associated with a document on the ES server. Models to be saved in the cluster should
  * extend this class
  */
-public abstract class Index {
+public abstract class Index<T> implements Indexable {
 
     private Optional<String> id;
     private Optional<Long> version;
@@ -28,11 +28,11 @@ public abstract class Index {
         client = es;
     }
 
-    public static <T extends Index> Finder<T> finder(Class<T> from) {
+    public static <T extends Indexable> Finder<T> finder(Class<T> from) {
         return new Finder<>(from, client.getClient(), client.indexName());
     }
 
-    public static <T extends Index> Finder<T> finder(Class<T> from, Consumer<XContentBuilder> consumer) {
+    public static <T extends Indexable> Finder<T> finder(Class<T> from, Consumer<XContentBuilder> consumer) {
         Finder<T> finder = new Finder(from, client.getClient(), client.indexName());
         XContentBuilder builder = null;
         try {

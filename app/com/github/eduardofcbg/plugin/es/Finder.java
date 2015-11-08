@@ -40,14 +40,15 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
-import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
+import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 
 /**
  * Helper class that queries your elasticsearch cluster. Should be instantiated statically in your models, meaning
  * that is is associated with each ES type.
  * @param <T> The type of your model
  */
-public class Finder<T extends Index> {
+public class Finder<T extends Indexable> {
 
     private static Client esClient = null;
     private static String EsIndexName = null;
@@ -441,7 +442,7 @@ public class Finder<T extends Index> {
         return indexName;
     }
 
-    public static <B extends Index> String getType(Class<B> type) {
+    public static <B extends Indexable> String getType(Class<B> type) {
         return type.getAnnotation(Type.Name.class).value();
     }
 
@@ -463,7 +464,7 @@ public class Finder<T extends Index> {
      * @param hits The response from the cluster.
      * @return The list of models that were queried from the ES server.
      */
-    public static <B extends Index> List<B> parse(SearchResponse hits, Class<B> from) {
+    public static <B extends Indexable> List<B> parse(SearchResponse hits, Class<B> from) {
         List<B> beans = new ArrayList<>();
         SearchHit[] newHits = hits.getHits().getHits();
         for(int i = 0; i < newHits.length; i++) {
@@ -584,7 +585,7 @@ public class Finder<T extends Index> {
         play.Logger.debug("ES - Set " + field.getName() + " from " + getType() + " as nested field");
     }
 
-    public static <T extends Index> String getParentType(Class<T> from) {
+    public static <T extends Indexable> String getParentType(Class<T> from) {
         try {
             return from.getAnnotation(Type.Parent.class).value();
         } catch(NullPointerException e) {} return null;
@@ -594,7 +595,7 @@ public class Finder<T extends Index> {
         return parentType;
     }
 
-    public static <T extends Index> int resultsPerPage(Class<T> from) {
+    public static <T extends Indexable> int resultsPerPage(Class<T> from) {
         try {
             return from.getAnnotation(Type.ResultsPerPage.class).value();
         } catch(NullPointerException e) {} return 5;
@@ -604,7 +605,7 @@ public class Finder<T extends Index> {
         return resultPerPage;
     }
 
-    public static <T extends Index> String getIndex(Class<T> from) {
+    public static <T extends Indexable> String getIndex(Class<T> from) {
         try {
             return from.getAnnotation(Type.Index.class).value();
         } catch(NullPointerException e) {} return getDefaultIndex();
