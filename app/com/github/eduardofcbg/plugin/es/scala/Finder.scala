@@ -12,10 +12,11 @@ import play.api.libs.json.{Format, Json}
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
-class Finder[T <: Indexable](typeName: String, parentType: String = "", resultPerPage: Int = 5, indexName: String = "play-es")
+class Finder[T <: Indexable](typeName: String, parentType: String = null, resultPerPage: Int = 5, indexName: String = null)
                         (implicit val es: Format[T], implicit var esClient: ES) extends FinderJ[T] {
 
-  FinderJ.setEsClient(esClient)
+  //construct the Finder on the java side
+  FinderJ.setEsClient(esClient.getClient, esClient.indexName)
 
   override def parse(hits: SearchResponse): util.List[T] = {
     val r: Seq[T] = hits.getHits.getHits.map { hit =>
@@ -45,9 +46,12 @@ class Finder[T <: Indexable](typeName: String, parentType: String = "", resultPe
 
   override def getObjectAsBytes(toIndex: T): Array[Byte] = Json.toJson(toIndex).toString().getBytes
 
-  override def getIndex: String = typeName
+  override def getIndex: String =  {
+    if (indexName == null) FinderJ.getDefaultIndex
+    else indexName
+  }
 
-  override def getType: String = indexName
+  override def getType: String = typeName
 
   override def resultsPerPage: Int = resultPerPage
 

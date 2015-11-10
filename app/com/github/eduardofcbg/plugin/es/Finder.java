@@ -61,10 +61,9 @@ public class Finder<T extends Indexable> {
      */
     public Finder(Class<T> from, Client client, String indexName) {
         this.from = from;
-        EsIndexName = indexName;
-        esClient = client;
+        setEsClient(client, indexName);
         try {
-            if (getParentType(from) != null) {
+            if (getParentType() != null) {
                 setParentMapping();
             }
             setNestedFields();
@@ -74,7 +73,15 @@ public class Finder<T extends Indexable> {
     }
 
     //constructor called on the scala side
-    public Finder() {}
+    public Finder() {
+        if (getParentType() != null) {
+            try {
+                setParentMapping();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     public Promise<IndexResponse> index(T toIndex, Consumer<IndexRequestBuilder> consumer) {
         return indexChild(toIndex, null, consumer);
@@ -607,8 +614,10 @@ public class Finder<T extends Indexable> {
         return esClient;
     }
 
-    public static void setEsClient(ES es) {
-        esClient = es.getClient();
+    //also to be called from the scala side
+    public static void setEsClient(Client es, String indexName) {
+        esClient = es;
+        EsIndexName = indexName;
     }
 
 }
