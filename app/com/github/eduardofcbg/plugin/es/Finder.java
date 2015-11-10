@@ -27,7 +27,6 @@ import org.elasticsearch.search.SearchHit;
 import play.libs.F;
 import play.libs.F.Promise;
 import play.libs.F.RedeemablePromise;
-import play.libs.Json;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -42,6 +41,7 @@ import java.util.function.Function;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
+import static play.libs.Json.mapper;
 
 /**
  * Helper class that queries your elasticsearch cluster. Should be instantiated statically in your models, meaning
@@ -53,9 +53,8 @@ public class Finder<T extends Indexable> {
     private static Client esClient = null;
     private static String EsIndexName = null;
 
-    //only for java
+    //only for java - used for reflection
     private Class<T> from;
-
 
     private String typeName;
     private String indexName;
@@ -81,8 +80,15 @@ public class Finder<T extends Indexable> {
         }
     }
 
-    //constructor called on the scala side
+    //constructor called on the scala side, in this case, the actual reference to the client will be in the scala's Finder
+    //and not int this superclass.
     public Finder(String indexName, String typeName, String parentType, Integer resultPerPage) {
+        if (indexName == null) {
+            //this.indexName = get it from the config file
+            this.indexName = "play-es";
+        } else {
+            this.indexName = indexName;
+        }
         this.indexName = indexName;
         this.parentType = parentType;
         this.typeName = typeName;
@@ -121,17 +127,21 @@ public class Finder<T extends Indexable> {
      */
     public Promise<IndexResponse> indexChild(T toIndex, String parentId, Consumer<IndexRequestBuilder> consumer) {
         IndexRequestBuilder builder = null;
-        try {
-            builder = getClient().prepareIndex(getIndex(), getType())
-                    .setSource(Json.mapper().writeValueAsBytes(toIndex));
-        } catch (JsonProcessingException e) { e.printStackTrace();}
+        builder = getClient().prepareIndex(getIndex(), getType())
+                .setSource(getObjectAsBytes(toIndex));
         if (parentId != null) builder.setParent(parentId);
         if (consumer != null) consumer.accept(builder);
 
         RedeemablePromise<IndexResponse> promise = RedeemablePromise.empty();
+
+        if (builder == null) play.Logger.error("builder is null!!");
+
         builder.execute(new ActionListener<IndexResponse>() {
             @Override
             public void onResponse(IndexResponse indexResponse) {
+
+                if (toIndex == null) play.Logger.error("toindex is null!!");
+
                 toIndex.setId(indexResponse.getId());
                 toIndex.setVersion(indexResponse.getVersion());
                 promise.success(indexResponse);
@@ -145,14 +155,20 @@ public class Finder<T extends Indexable> {
         return F.Promise.wrap(promise.wrapped());
     }
 
+    public byte[] getObjectAsBytes(T toIndex) {
+        byte[] bytes = null;
+        try {
+            return mapper().writeValueAsBytes(toIndex);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return bytes;
+    }
+
     public Promise<BulkResponse> indexBulk(List<T> toIndex, Consumer<BulkItemResponse> consumer) {
         BulkRequestBuilder bulkRequest = getClient().prepareBulk();
         toIndex.forEach(data -> {
-            try {
-                bulkRequest.add(getClient().prepareIndex(getIndex(), getType()).setSource(Json.mapper().writeValueAsBytes(data)));
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
+            bulkRequest.add(getClient().prepareIndex(getIndex(), getType()).setSource(getObjectAsBytes(data)));
         });
 
         RedeemablePromise<BulkResponse> promise = RedeemablePromise.empty();
@@ -388,45 +404,39 @@ public class Finder<T extends Indexable> {
 
         UpdateRequestBuilder builder;
         RedeemablePromise<UpdateResponse> promise = RedeemablePromise.empty();
-        try {
-            builder = getClient().prepareUpdate(getIndex(), getType(), id)
-                    .setDoc(Json.mapper().writeValueAsBytes(toUpdate))
-                    .setVersion(original.getVersion().get());
+        builder = getClient().prepareUpdate(getIndex(), getType(), id)
+                .setDoc(getObjectAsBytes(toUpdate))
+                .setVersion(original.getVersion().get());
 
-            if (parentId != null) builder.setParent(parentId);
-            builder.execute(new ActionListener<UpdateResponse>() {
-                @Override
-                public void onResponse(UpdateResponse updateResponse) {
-                    promise.success(updateResponse);
-                }
-                @Override
-                public void onFailure(Throwable throwable) {
-                    if (throwable.getCause().getCause().getClass().equals(org.elasticsearch.index.engine.VersionConflictEngineException.class)) {
-                        boolean done = false;
-                        while(!done) {
-                            done = true;
-                            try {
-                                T actual = get(id).get(10000).get();
-                                if (actual != null) {
-                                    try {
-                                        UpdateResponse r = getClient().prepareUpdate(getIndex(), getType(), id)
-                                                .setDoc(Json.mapper().writeValueAsBytes(change.apply(actual)))
-                                                .setVersion(actual.getVersion().get()).get();
-                                    } catch (JsonProcessingException e) {e.printStackTrace();}
-                                } else {
-                                    promise.failure(new DocumentNotFound());
-                                    break;
-                                }
-                            } catch(VersionConflictEngineException e) {
-                                done = false;
+        if (parentId != null) builder.setParent(parentId);
+        builder.execute(new ActionListener<UpdateResponse>() {
+            @Override
+            public void onResponse(UpdateResponse updateResponse) {
+                promise.success(updateResponse);
+            }
+            @Override
+            public void onFailure(Throwable throwable) {
+                if (throwable.getCause().getCause().getClass().equals(VersionConflictEngineException.class)) {
+                    boolean done = false;
+                    while(!done) {
+                        done = true;
+                        try {
+                            T actual = get(id).get(10000).get();
+                            if (actual != null) {
+                                UpdateResponse r = getClient().prepareUpdate(getIndex(), getType(), id)
+                                        .setDoc(getObjectAsBytes(actual))
+                                        .setVersion(actual.getVersion().get()).get();
+                            } else {
+                                promise.failure(new DocumentNotFound());
+                                break;
                             }
+                        } catch(VersionConflictEngineException e) {
+                            done = false;
                         }
-                    } else promise.failure(throwable.getCause());
-                }
-            });
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
+                    }
+                } else promise.failure(throwable.getCause());
+            }
+        });
         return F.Promise.wrap(promise.wrapped());
     }
 
@@ -452,7 +462,7 @@ public class Finder<T extends Indexable> {
      * @return
      */
     public static Map<String, Object> parse(Object obj) {
-        return Json.mapper().convertValue(obj, Map.class);
+        return mapper().convertValue(obj, Map.class);
     }
 
     public List<T> parse(SearchResponse hits) {
@@ -469,7 +479,7 @@ public class Finder<T extends Indexable> {
         SearchHit[] newHits = hits.getHits().getHits();
         for(int i = 0; i < newHits.length; i++) {
             final SearchHit hit = newHits[i];
-            B bean = Json.mapper().convertValue(hit.getSource(), from);
+            B bean = mapper().convertValue(hit.getSource(), from);
             bean.setId(hit.getId());
             bean.setVersion(hit.getVersion());
             beans.add(bean);
@@ -483,7 +493,7 @@ public class Finder<T extends Indexable> {
      * @return
      */
     public T parse(GetResponse result) {
-        T bean = Json.mapper().convertValue(result.getSource(), from);
+        T bean = mapper().convertValue(result.getSource(), from);
         bean.setId(result.getId());
         bean.setVersion(result.getVersion());
         return bean;
@@ -617,6 +627,10 @@ public class Finder<T extends Indexable> {
 
     public static Client getClient() {
         return esClient;
+    }
+
+    public static void setEsClient(ES es) {
+        esClient = es.getClient();
     }
 
 }

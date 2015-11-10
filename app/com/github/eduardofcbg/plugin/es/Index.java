@@ -107,10 +107,5 @@ public abstract class Index<T> implements Indexable {
         return Json.mapper().readValue(data, from);
     }
 
-    public static String getIndexName() {
-        return client.indexName();
-    }
-
-
 
 }

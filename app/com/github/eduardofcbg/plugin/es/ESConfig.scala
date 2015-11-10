@@ -55,7 +55,7 @@ class ESConfig @Inject() (config: Configuration, lifecycle: ApplicationLifecycle
   }
 
   private def createNode = {
-    node = nodeBuilder.local(true).node
+    node = nodeBuilder.settings(Settings.builder().put("path.home", "/esdev")).local(true).node
     client = node.client()
   }
 
