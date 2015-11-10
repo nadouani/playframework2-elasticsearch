@@ -46,10 +46,14 @@ You should enable and configure the plugin in `conf/application.conf`
 ## Enable the plugin
 play.modules.enabled += "com.github.eduardofcbg.plugin.es.ESModule"
 
-es.embed=false
+## Enable embedded database for developing
+es.embed=true
+## Where to save embedded database (change this)
+es.local.path="/home/eduardo/db"
 
+## For connecting to a remote database
 ## List of hosts
-es.hosts=["127.0.0.1:9300"]
+#es.hosts=["127.0.0.1:9300"]
 
 ## Name of the index (defaults to "play-es")
 #es.index="play-es"

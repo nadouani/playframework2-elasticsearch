@@ -15,7 +15,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
  * A object that is associated with a document on the ES server. Models to be saved in the cluster should
  * extend this class
  */
-public abstract class Index<T> implements Indexable {
+public class Index<T> implements Indexable {
 
     private Optional<String> id;
     private Optional<Long> version;
@@ -66,6 +66,11 @@ public abstract class Index<T> implements Indexable {
 
     public void setId(String id) {
         this.id = Optional.of(id);
+    }
+
+    @Override
+    public void setVersion(long version) {
+        this.version = Optional.of(version);
     }
 
     /**

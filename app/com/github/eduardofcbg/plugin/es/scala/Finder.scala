@@ -13,8 +13,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 class Finder[T <: Indexable](typeName: String, parentType: String = "", resultPerPage: Int = 5, indexName: String = "play-es")
-                        (implicit val es: Format[T], implicit var esClient: ES)
-  extends FinderJ[T](indexName, typeName, parentType, resultPerPage) {
+                        (implicit val es: Format[T], implicit var esClient: ES) extends FinderJ[T] {
 
   FinderJ.setEsClient(esClient)
 
@@ -45,5 +44,13 @@ class Finder[T <: Indexable](typeName: String, parentType: String = "", resultPe
   def get(id: String)(implicit ec: ExecutionContext = ExecutionContext.global): Future[Option[T]] = super.get(id).wrapped().map( l => l.asScala)
 
   override def getObjectAsBytes(toIndex: T): Array[Byte] = Json.toJson(toIndex).toString().getBytes
+
+  override def getIndex: String = typeName
+
+  override def getType: String = indexName
+
+  override def resultsPerPage: Int = resultPerPage
+
+  override def getParentType: String = parentType
 
 }

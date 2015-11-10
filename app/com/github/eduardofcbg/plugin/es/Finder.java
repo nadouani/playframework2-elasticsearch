@@ -56,44 +56,25 @@ public class Finder<T extends Indexable> {
     //only for java - used for reflection
     private Class<T> from;
 
-    private String typeName;
-    private String indexName;
-    private String parentType;
-    private int resultPerPage;
-
     /**
      * Creates a finder for querying ES cluster
      */
     public Finder(Class<T> from, Client client, String indexName) {
         this.from = from;
-        this.typeName = getType(from);
-        this.indexName = getIndex(from);
-        this.parentType = getParentType(from);
-        this.resultPerPage = resultsPerPage(from);
-        esClient = client;
         EsIndexName = indexName;
+        esClient = client;
         try {
-            setParentMapping();
+            if (getParentType(from) != null) {
+                setParentMapping();
+            }
             setNestedFields();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    //constructor called on the scala side, in this case, the actual reference to the client will be in the scala's Finder
-    //and not int this superclass.
-    public Finder(String indexName, String typeName, String parentType, Integer resultPerPage) {
-        if (indexName == null) {
-            //this.indexName = get it from the config file
-            this.indexName = "play-es";
-        } else {
-            this.indexName = indexName;
-        }
-        this.indexName = indexName;
-        this.parentType = parentType;
-        this.typeName = typeName;
-        this.resultPerPage = resultPerPage;
-    }
+    //constructor called on the scala side
+    public Finder() {}
 
     public Promise<IndexResponse> index(T toIndex, Consumer<IndexRequestBuilder> consumer) {
         return indexChild(toIndex, null, consumer);
@@ -134,14 +115,9 @@ public class Finder<T extends Indexable> {
 
         RedeemablePromise<IndexResponse> promise = RedeemablePromise.empty();
 
-        if (builder == null) play.Logger.error("builder is null!!");
-
         builder.execute(new ActionListener<IndexResponse>() {
             @Override
             public void onResponse(IndexResponse indexResponse) {
-
-                if (toIndex == null) play.Logger.error("toindex is null!!");
-
                 toIndex.setId(indexResponse.getId());
                 toIndex.setVersion(indexResponse.getVersion());
                 promise.success(indexResponse);
@@ -445,11 +421,11 @@ public class Finder<T extends Indexable> {
      * @return Simply the annotated type name on the model
      */
     public String getType() {
-        return typeName;
+        return getType(from);
     }
 
     public String getIndex() {
-        return indexName;
+        return getIndex(from);
     }
 
     public static <B extends Indexable> String getType(Class<B> type) {
@@ -602,7 +578,7 @@ public class Finder<T extends Indexable> {
     }
 
     public String getParentType() {
-        return parentType;
+        return getParentType(from);
     }
 
     public static <T extends Indexable> int resultsPerPage(Class<T> from) {
@@ -612,12 +588,14 @@ public class Finder<T extends Indexable> {
     }
 
     public int resultsPerPage() {
-        return resultPerPage;
+        return resultsPerPage(from);
     }
 
     public static <T extends Indexable> String getIndex(Class<T> from) {
         try {
-            return from.getAnnotation(Type.Index.class).value();
+            String indexName = from.getAnnotation(Type.Index.class).value();
+            if (indexName == null) indexName = getDefaultIndex();
+            return indexName;
         } catch(NullPointerException e) {} return getDefaultIndex();
     }
 
