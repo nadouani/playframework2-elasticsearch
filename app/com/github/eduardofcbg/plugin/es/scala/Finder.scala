@@ -30,11 +30,13 @@ class Finder[T <: Indexable](typeName: String, parentType: String = "", resultPe
 
   override def parse(result: GetResponse): T = Json.parse(result.getSourceAsBytes).as[T]
 
-  def search(consumer: (SearchRequestBuilder => Unit) = (s: SearchRequestBuilder) => {}, page: Int)(implicit ec: ExecutionContext = ExecutionContext.global): Future[Seq[T]] = {
+  private val all = (s: SearchRequestBuilder) => {}
+
+  def search(page: Int = 0, consumer: (SearchRequestBuilder => Unit) = all)(implicit ec: ExecutionContext = ExecutionContext.global): Future[Seq[T]] = {
     super.search(consumer.asJava, page).wrapped().map { l => l.asScala }
   }
 
-  def searchWhere(key: String, value: String, page: Int)(implicit ec: ExecutionContext = ExecutionContext.global): Future[Seq[T]] = {
+  def searchWhere(page: Int = 0, key: String, value: String)(implicit ec: ExecutionContext = ExecutionContext.global): Future[Seq[T]] = {
     super.searchWhere(key, value, page).wrapped().map { l => l.asScala }
   }
 
