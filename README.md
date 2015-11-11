@@ -32,7 +32,7 @@ scalaVersion := "2.11.1"
 libraryDependencies ++= Seq(
   cache,
   javaWs,
-  "com.github.eduardofcbg" %% "play-es" % "1.0-SNAPSHOT"
+  "com.github.eduardofcbg" %% "play-es" % "1.1-SNAPSHOT"
 )
 ```
 
