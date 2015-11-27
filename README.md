@@ -1,4 +1,4 @@
-Module that integrates Elasticsearch into your PlayFramework app.
+Module that integrates Elasticsearch 2.0 into your PlayFramework app.
 
 ## Install
 
