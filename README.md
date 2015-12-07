@@ -241,4 +241,4 @@ public class Pet extends Index {
 }
 ```
 
-A sample application based on this guide can be found [here](https://github.com/mantsak/playframework2-elasticsearch-sample)
+A sample application based on this guide can be found [here](https://github.com/eduardofcbg/playframework2-elasticsearch-sample)
