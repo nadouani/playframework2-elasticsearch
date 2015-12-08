@@ -1,4 +1,9 @@
-Module that integrates Elasticsearch 2.0 into your PlayFramework app.
+This module integrates Elasticsearch into your PlayFramework app.
+
+## Versions
+Module | Playframework | Elasticsearch | Comments
+--- | --- | --- | ---
+ 0.1 | 2.4.3 | 2.0 | Initial version
 
 ## Install
 
@@ -68,7 +73,7 @@ es.local.path="/home/eduardo/db"
 
 ```
 
-## How to use
+## Usage from Java
 
 Make your models extend the `com.github.eduardofcbg.plugin.es.Index` class and annotate it with the name of the [type](http://www.elastic.co/guide/en/elasticsearch/reference/current/glossary.html) that will be associated with the indexed objects of this class.
 On each model add a find helper. This is the object that you will use query your ES cluster.
