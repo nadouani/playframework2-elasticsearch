@@ -1,8 +1,8 @@
-name := """play-es"""
+name := """playframework2-elasticsearch"""
 
 organization := "com.github.eduardofcbg"
 
-version := "1.1-SNAPSHOT"
+version := "0.1"
 
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
