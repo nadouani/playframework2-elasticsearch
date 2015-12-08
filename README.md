@@ -7,20 +7,16 @@ Module | Playframework | Elasticsearch | Comments
 
 ## Install
 
-This module requres PlayFramework 2.4.
-
-Clone this module and add it to the local repository.
-
-~~~ sh
-$ git clone https://github.com/eduardofcbg/playframework2-elasticsearch.git
-$ cd playframework2-elasticsearch
-$ sbt publish-local
-~~~
-
-On your project add the following dependency declaration:
+Add the following resolver to your `build.sbt`
 
 ```
-  "com.github.eduardofcbg" %% "play-es" % "1.0-SNAPSHOT"
+resolvers += "eduardofcbg" at "http://dl.bintray.com/eduardofcbg/maven"
+```
+
+And the following dependency declaration:
+
+```
+  "com.github.eduardofcbg" %% "playframework2-elasticsearch" % "0.1"
 ```
 
 Your `build.sbt` should look something like this:
@@ -37,7 +33,7 @@ scalaVersion := "2.11.1"
 libraryDependencies ++= Seq(
   cache,
   javaWs,
-  "com.github.eduardofcbg" %% "play-es" % "1.1-SNAPSHOT"
+  "com.github.eduardofcbg" %% "playframework2-elasticsearch" % "0.1"
 )
 ```
 
