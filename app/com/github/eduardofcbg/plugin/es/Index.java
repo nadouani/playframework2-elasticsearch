@@ -19,6 +19,7 @@ public class Index<T> implements Indexable {
 
     private Optional<String> id;
     private Optional<Long> version;
+    private Optional<Float> score;
     private long timestamp;
 
     @JsonIgnore
@@ -42,19 +43,21 @@ public class Index<T> implements Indexable {
             builder.endObject();
             builder.endObject();
             finder.setMapping(builder);
-        } catch (IOException e) {e.printStackTrace();}
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return finder;
     }
 
     public Index() {
         super();
         this.id = Optional.empty();
-        this.version = Optional.empty();;
+        this.version = Optional.empty();
+        this.score = Optional.empty();
         this.timestamp = System.currentTimeMillis();
     }
 
     /**
-     *
      * @return The id of the document that inherent to the document on the ES server
      * This value only exists if the Index object was queried from the db or indexed before,
      * otherwise this Option will be empty.
@@ -74,7 +77,6 @@ public class Index<T> implements Indexable {
     }
 
     /**
-     *
      * @return The version of the index that is inherent to the document on the ES server
      * This value only exists if the Index object was queried from the db or indexed before,
      * otherwise this Option will be empty.
@@ -88,12 +90,26 @@ public class Index<T> implements Indexable {
         this.version = Optional.of(version);
     }
 
+    @Override
+    public void setScore(Float score) {
+        this.score = Optional.of(score);
+    }
+
+    /**
+     * @return The score of the document in a search result on the ES server
+     */
+    @JsonIgnore
+    public Optional<Float> getScore() {
+        return score;
+    }
+
     public long getTimestamp() {
         return timestamp;
     }
 
     /**
      * Uses the default ESPlugin Object Mapper to create a Json object
+     *
      * @return A json object that is compatible with Play's controllers.
      */
     public JsonNode toJson() {
@@ -102,9 +118,10 @@ public class Index<T> implements Indexable {
 
     /**
      * Parses Json to an index
+     *
      * @param data A Json string
      * @param from The class of the object that the Json string will be parsed to
-     * @param <T> A type that extends an Index, meaning your Play Model
+     * @param <T>  A type that extends an Index, meaning your Play Model
      * @return A java object parsed from the Json content.
      * @throws IOException
      */

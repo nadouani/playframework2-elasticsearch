@@ -465,6 +465,7 @@ public class Finder<T extends Indexable> {
             B bean = mapper().convertValue(hit.getSource(), from);
             bean.setId(hit.getId());
             bean.setVersion(hit.getVersion());
+            bean.setScore(hit.getScore());
             beans.add(bean);
         }
         return beans;
