@@ -4,7 +4,7 @@ organization := "com.github.eduardofcbg"
 
 version := "0.1"
 
-lazy val root = (project in file(".")).enablePlugins(PlayJava)
+val root = (project in file(".")).enablePlugins(PlayJava)
 
 scalaVersion := "2.11.6"
 
@@ -16,3 +16,5 @@ libraryDependencies ++= Seq(
 )
 
 resolvers += "kender" at "http://dl.bintray.com/kender/maven"
+
+licenses += ("GPL-2.0", url("http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"))

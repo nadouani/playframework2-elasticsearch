@@ -35,6 +35,8 @@ libraryDependencies ++= Seq(
   javaWs,
   "com.github.eduardofcbg" %% "playframework2-elasticsearch" % "0.1"
 )
+
+resolvers += "eduardofcbg" at "http://dl.bintray.com/eduardofcbg/maven"
 ```
 
 ## Configure the plugin
