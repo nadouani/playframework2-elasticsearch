@@ -43,6 +43,7 @@ class ESConfig @Inject() (config: Configuration, lifecycle: ApplicationLifecycle
     config getBoolean("es.sniff") foreach (s => settings.put("client.transport.sniff", s))
     config getInt ("es.timeout") foreach (p => settings.put("client.transport.ping_timeout", p))
     config getInt ("es.ping") foreach (p => settings.put("client.transport.nodes_sampler_interval", p))
+    config getString ("es.cluster") foreach (p => settings.put("cluster.name", p))
 
     val remoteClient = TransportClient.builder().settings(settings).build();
     config getStringSeq ("es.hosts") foreach (_.foreach(s => {
